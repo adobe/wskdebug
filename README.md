@@ -24,31 +24,7 @@ npm install -g @nui/wskdebug
 
 The action to debug (e.g. `myaction`) must already be deployed.
 
-### Raw
-Run `wskdebug` and specify the action
-
-```
-wskdebug myaction
-```
-
-This will output (in case of a nodejs action):
-
-```
-Debug type: nodejs
-Debug port: localhost:9229
-Ready, waiting for activations of myaction
-Use CTRL+C to exit
-```
-
-You can then use a debugger to connect to the debug port, in this case `localhost:9229`. For example, using the command line Node debugger [node-inspect](https://github.com/nodejs/node-inspect):
-
-```
-node-inspect 127.0.0.1:9229
-```
-
-When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and remove the forwarding agent and restore the original action.
-
-### Visual Studio Code
+### Visual Studio Code - Node JS
 
 Add the configuration below to your [launch.json](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `myaction` with the name of your action. When you run this, it will start wskdebug and should automatically connect the debugger.
 
@@ -66,6 +42,50 @@ Currently, to find the code to debug, you will have to look in the debug panel o
         }
     ]
 ```
+
+### Plain usage
+Run `wskdebug` and specify the action
+
+```
+wskdebug myaction
+```
+
+This will output (in case of a nodejs action):
+
+```
+Debug type: nodejs
+Debug port: localhost:9229
+Ready, waiting for activations of myaction
+Use CTRL+C to exit
+```
+
+You can then use a debugger to connect to the debug port, in this case `localhost:9229`. See below.
+
+When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and remove the forwarding agent and restore the original action.
+
+#### Node JS: Chrome DevTools
+
+1. Open Chrome
+2. Enter `about:inspect`
+3. You should see a remote target `app.js`
+4. Click on "Open dedicated DevTools for Node" (but not on "inspect" under Target)
+5. This should open a new window
+6. Go to Sources > Node
+7. Find the `runner.js`
+8. Set a breakpoint on the line `thisRunner.userScriptMain(args)` inside `this.run()` (around line 97)
+9. Invoke the action
+10. Debugger should hit the breakpoint
+11. Then step into the function, it should now show the action sources in a tab named like `VM201` (the openwhisk nodejs runtime evals() the script, hence it's not directly listed as source file)
+
+See also this [article](https://medium.com/@paul_irish/debugging-node-js-nightlies-with-chrome-devtools-7c4a1b95ae27).
+
+#### Node JS: node-inspect command line
+Use the command line Node debugger [node-inspect](https://github.com/nodejs/node-inspect):
+
+```
+node-inspect 127.0.0.1:9229
+```
+
 
 ## Troubleshooting
 
