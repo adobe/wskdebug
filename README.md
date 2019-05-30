@@ -69,6 +69,28 @@ Currently, to find the code to debug, you will have to look in the debug panel o
 
 ## Troubleshooting
 
+### Port is already allocated
+
+You can only run one `wskdebug` aka one action for the same runtime (debug port) at a time.
+
+If you get an error like this:
+
+```
+docker: Error response from daemon: driver failed programming external connectivity on endpoint wskdebug-webaction-1559204115390 (3919892fab2981bf9feab0b6ba3fc256676de59d1a6ab67519295757313e8ac3): Bind for 0.0.0.0:9229 failed: port is already allocated.
+```
+
+it means that there is another `wskdebug` already running or that its container was left over, blocking the debug port.
+
+Either quit the other `wskdebug` or if its an unexpected left over, terminate the docker container using:
+
+```
+docker rm -f wskdebug-webaction-1559204115390
+```
+
+The containers are named `wskdebug-ACTION-TIMESTAMP`.
+
+### Restore action
+
 If `wskdebug` fails unexpectedly or gets killed, it might leave the forwarding agent behind in place of the action. You should be able to restore the original action using the copied action named `*_wskdebug_original`.
 
 ```
