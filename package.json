@@ -1,0 +1,30 @@
+{
+    "name": "@nui/wskdebug",
+    "version": "0.0.1",
+    "description": "Apache OpenWhisk debugger",
+    "main": "index.js",
+    "bin": {
+        "wskdebug": "./index.js"
+    },
+    "scripts": {
+        "pretest": "eslint ./"
+    },
+    "publishConfig": {
+        "registry": "https://artifactory.corp.adobe.com/artifactory/api/npm/npm-nui-release-local"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://git.corp.adobe.com/nui/wskdebug.git"
+    },
+    "dependencies": {
+        "fetch-retry": "^2.2.0",
+        "fs-extra": "^8.0.1",
+        "openwhisk": "^3.19.0",
+        "yargs": "^13.2.4"
+    },
+    "devDependencies": {
+        "eslint": "^5.16.0",
+        "eslint-config-problems": "^3.0.1",
+        "eslint-plugin-mocha": "^5.3.0"
+    }
+}

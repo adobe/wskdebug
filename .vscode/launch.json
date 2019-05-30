@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to 9229",
+            "address": "localhost",
+            "port": 9229
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "wskdebug (self)",
+            "program": "${workspaceFolder}/index.js",
+            "args": ["wskdebug-examples/webaction"],
+            "smartStep": true,
+            "skipFiles": ["<node_internals>/**"],
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "wskdebug-examples/webaction",
+            "program": "${workspaceFolder}/index.js",
+            "args": ["wskdebug-examples/webaction"],
+            "port": 9229,
+            "outputCapture": "std"
+        }
+    ]
+}
