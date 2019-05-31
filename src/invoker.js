@@ -14,8 +14,10 @@
 
 const { execSync } = require('child_process');
 const fetch = require('fetch-retry');
+const kinds = require('./kinds/kinds');
 
 const RUNTIME_PORT = 8080;
+const INIT_RETRY_DELAY_MS = 100;
 
 // https://github.com/apache/incubator-openwhisk/blob/master/docs/reference.md#system-limits
 const OPENWHISK_DEFAULTS = {
@@ -23,78 +25,11 @@ const OPENWHISK_DEFAULTS = {
     memory: 256
 }
 
-// https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json
-// note: openwhisk deployments might have their own versions
-const RUNTIMES = {
-    "nodejs"         : { // deprecated, image no longer available
-        image: "openwhisk/nodejsaction:latest"
-    },
-    "nodejs:6"       : {
-        image: "openwhisk/nodejs6action:latest"
-        // can reference a different DEBUG below if necessary
-        // debug: "nodejsLegacy"
-    },
-    "nodejs:8"       : {
-        image: "openwhisk/action-nodejs-v8:latest"
-    },
-    "nodejs:10"      : { // Adobe I/O Runtime specific
-        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
-    },
-    "nodejs:12"      : {
-        image: "openwhisk/action-nodejs-v12:latest"
-    },
-    "nodejs:default" : { // Adobe I/O Runtime specific
-        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
-    },
-    "python"         : {
-        image: "openwhisk/python2action:latest"
-    },
-    "python:2"       : {
-        image: "openwhisk/python2action:latest"
-    },
-    "python:3"       : {
-        image: "openwhisk/python3action:latest"
-    },
-    "swift"          : { // deprecated, image no longer available
-        image: "openwhisk/swiftaction:latest"
-    },
-    "swift:3"        : { // deprecated, but still available
-        image: "openwhisk/swift3action:latest"
-    },
-    "swift:3.1.1"    : {
-        image: "openwhisk/action-swift-v3.1.1:latest"
-    },
-    "swift:4.1"      : {
-        image: "openwhisk/action-swift-v4.1:latest"
-    },
-    "java"           : {
-        image: "openwhisk/java8action:latest"
-    },
-    "php:7.1"        : {
-        image: "openwhisk/action-php-v7.1:latest"
-    },
-    "php:7.2"        : {
-        image: "openwhisk/action-php-v7.2:latest"
-    },
-    "native"         : {
-        image: "openwhisk/dockerskeleton:latest"
-    }
-}
-
-const DEBUG = {
-    nodejs: {
-        // additional debug port to expose
-        port: 9229,
-        // modified docker image command/entrypoint to enable debugging
-        command: "node --expose-gc --inspect=0.0.0.0:9229 app.js"
-    }
-}
-
-const RETRY_DELAY_MS = 100;
-
-function execute(cmd, options) {
+function execute(cmd, options, verbose) {
     cmd = cmd.replace(/\s+/g, ' ');
-    // console.log(cmd);
+    if (verbose) {
+        console.log(cmd);
+    }
     const result = execSync(cmd, options);
     if (result) {
         return result.toString().trim();
@@ -114,6 +49,8 @@ class OpenWhiskInvoker {
         this.debugPort = options.debugPort;
         this.debugCommand = options.debugCommand;
         this.verbose = options.verbose;
+        this.sourcePath = options.sourcePath;
+        this.main = options.main;
 
         this.containerName = `wskdebug-${this.action.name}-${Date.now()}`;
     }
@@ -134,10 +71,12 @@ class OpenWhiskInvoker {
     async startContainer() {
         const action = this.action;
 
+        // kind and image
+
         // precendence:
         // 1. arguments (this.image)
         // 2. action (action.exec.image)
-        // 3. defaults (RUNTIMES[kind].image)
+        // 3. defaults (kinds[kind].image)
 
         const kind = this.kind || action.exec.kind;
 
@@ -146,14 +85,25 @@ class OpenWhiskInvoker {
         }
         const baseKind = kind.split(":")[0];
 
-        const runtime = RUNTIMES[kind] || {};
+        const runtime = kinds[kind] || {};
         const image = this.image || action.exec.image || runtime.image;
 
         if (!image) {
             throw new Error(`Unknown kind: ${kind}. You might want to specify --image.`);
         }
 
-        const debug = DEBUG[runtime.debug || baseKind] || {};
+        // debugging instructions
+        const debugKind = runtime.debug || baseKind;
+        try {
+            this.debug = require(`${__dirname}/kinds/${debugKind}/${debugKind}`);
+        } catch (e) {
+            if (this.verbose) {
+                console.error(`Cannot find debug info for kind ${debugKind}:`, e.message);
+            }
+            this.debug = {};
+        }
+
+        const debug = this.debug;
         debug.port = this.debugPort || debug.port;
         debug.command = this.debugCommand || debug.command;
 
@@ -164,46 +114,78 @@ class OpenWhiskInvoker {
             throw new Error(`No debug command known for kind: ${kind}. Please specify --debug-command.`);
         }
 
+        // limits
         const memory = (action.limits.memory || OPENWHISK_DEFAULTS.memory) * 1024 * 1024;
 
-        console.log(`Debug type: ${runtime.debug || baseKind}`);
-        console.log(`Debug port: localhost:${debug.port}`)
+        // source mounting
+        if (this.sourcePath) {
+            if (!debug.getMountAction) {
+                throw new Error(`Sorry, mounting sources not yet supported for: ${kind}.`);
+            }
+
+            console.log(`Source path: ${this.sourcePath}`);
+        }
+
+        let extraArgs = "";
+        if (debug.dockerArgs) {
+            extraArgs = debug.dockerArgs(this);
+        }
+
+        console.log(`Debug type : ${runtime.debug || baseKind}`);
+        console.log(`Debug port : localhost:${debug.port}`)
 
         if (this.verbose) {
             console.log(`Starting local debug container ${this.name()}`);
         }
 
-        execute(`
-            docker run
+        execute(
+            `docker run
                 -d
                 --name ${this.name()}
                 --rm
                 -m ${memory}
                 -p ${RUNTIME_PORT}
                 -p ${debug.port}:${debug.port}
+                ${extraArgs}
                 ${image}
                 ${debug.command}
-        `);
+            `,
+            {},
+            this.verbose
+        );
 
         this.containerRunning = true;
     }
 
     async init() {
-        await fetch(`${this.url()}/init`, {
+        let action;
+        if (this.sourcePath && this.debug.getMountAction) {
+            action = this.debug.getMountAction(this);
+
+        } else {
+            action = {
+                binary: this.action.exec.binary,
+                main:   this.action.exec.main || "main",
+                code:   this.action.exec.code,
+            };
+        }
+
+        const response = await fetch(`${this.url()}/init`, {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                value: {
-                    binary: this.action.exec.binary,
-                    main:   this.action.exec.main || "main",
-                    code:   this.action.exec.code,
-                }
+                value: action
             }),
-            retries: this.timeout() / RETRY_DELAY_MS,
-            retryDelay: RETRY_DELAY_MS
+            retries: this.timeout() / INIT_RETRY_DELAY_MS,
+            retryDelay: INIT_RETRY_DELAY_MS
         });
+
+        if (response.status === 502) {
+            const body = await response.json();
+            throw new Error("Could not initialize action code on local debug container:\n\n" + body.error);
+        }
     }
 
     async run(args, activationId) {

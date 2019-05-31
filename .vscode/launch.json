@@ -9,7 +9,8 @@
             "request": "attach",
             "name": "Attach to 9229",
             "address": "localhost",
-            "port": 9229
+            "port": 9229,
+            "smartStep": true
         },
         {
             "type": "node",
@@ -28,7 +29,9 @@
             "program": "${workspaceFolder}/index.js",
             "args": ["wskdebug-examples/webaction"],
             "port": 9229,
-            "outputCapture": "std"
+            "outputCapture": "std",
+            "smartStep": true,
+            "skipFiles": ["<node_internals>/**"],
         }
     ]
 }

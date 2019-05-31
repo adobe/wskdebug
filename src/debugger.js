@@ -170,7 +170,7 @@ class Debugger {
         }
     }
 
-    async abortPendingActivations(actionName) {
+    async abortPendingActivations(/*actionName*/) {
         // TODO: tell agent to abort, new command $abortActivations
     }
 
@@ -206,7 +206,9 @@ class Debugger {
         // the $waitForActivation agent activation will block, but only until
         // it times out, hence we need to retry when it fails
         while (true) {
-            // process.stdout.write(".");
+            if (this.argv.verbose) {
+                process.stdout.write(".");
+            }
             try {
                 const activation = await this.wsk.actions.invoke({
                     name: actionName,
@@ -217,8 +219,13 @@ class Debugger {
                 });
                 if (activation && activation.response) {
                     const params = activation.response.result;
-                    // console.log();
-                    console.log("Activation:", params);
+                    if (this.argv.verbose) {
+                        console.log();
+                        console.log(`Activation: ${params.$activationId}`);
+                        console.log(params);
+                    } else {
+                        process.stdout.write(`Activation: ${params.$activationId}...`);
+                    }
                     return params;
                 } else {
                     console.log("Incomplete activation (no response.result):", activation);
@@ -226,8 +233,8 @@ class Debugger {
 
             } catch(e) {
                 if (this.getActivationError(e).code !== 42) {
-                    console.log();
-                    console.log("Unexpected error while polling agent for activation:");
+                    console.error();
+                    console.error("Unexpected error while polling agent for activation:");
                     console.dir(e, { depth: null });
                     throw new Error("Unexpected error while polling agent for activation.");
                 }
@@ -246,7 +253,14 @@ class Debugger {
     }
 
     async completeActivation(actionName, activationId, result) {
-        console.log("Completed activation:", result);
+        if (this.argv.verbose) {
+            console.log();
+            console.log(`Completed activation: ${activationId}`);
+            console.log(result);
+        } else {
+            console.log(" completed.");
+        }
+
         result.$activationId = activationId;
         await this.wsk.actions.invoke({
             name: actionName,

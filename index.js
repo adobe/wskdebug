@@ -16,63 +16,83 @@
 
 const yargs = require("yargs");
 const Debugger = require("./src/debugger");
+const path = require("path");
+
+const consoleError = console.error;
+console.error = (...args) => {
+    consoleError(...args.map(a => `\x1b[31m${a}\x1b[0m`) );
+}
 
 yargs
 .help()
 .alias("h", "help")
-.option("version", {description: "Print the wskdebug version"})
 .showHelpOnFail(true)
-.updateStrings({ 'Positionals:': 'Arguments:' })
+.updateStrings({
+    'Positionals:': 'Arguments:',
+    'Not enough non-option arguments: got %s, need at least %s': "Error: Missing argument <action> (%s/%s)"
+})
+.version(false)
 .command(
-    "* <action>",
-    "Apache OpenWhisk debugger",
-    // "* <action> [source-path]",
-    // "Apache OpenWhisk debugger and live reload tool",
+    "* <action> [source-path]",
+    `Apache OpenWhisk Debugger
+
+    Debug OpenWhisk actions using local docker containers as runtimes. If only
+    <action> is specified, the debugger will use the deployed action code.
+
+    Use [source-path] to point to a local file or folder containing the action
+    sources. The debugger will dynamically mount these on the action runtime and
+    automatically reload the code on each new activation. Configure the IDE debug
+    configuration with this as the source path.
+
+    Please note that [source-path] is currently only supported for Node JS actions
+    with a kind "nodejs:*".`,
     yargs => {
         yargs.positional('action', {
-            describe: 'Name of action to debug (required).',
+            describe: 'Name of action to debug. Required.',
             type: 'string'
         });
-        // yargs.positional('source-path', {
-        //     describe: 'Path to action sources.',
-        //     type: 'string'
-        // });
-
-        yargs.option("kind", {
-            type: "string",
-            describe: "Action kind. Required for blackbox images."
+        yargs.positional('source-path', {
+            describe: 'Path to local action sources, folder or file.',
+            type: 'string',
+            coerce: path.resolve // ensure absolute path
         });
-        yargs.option("image", {
+
+        yargs.option("m", {
+            alias: "main",
+            type: "string",
+            describe: "Name of action entry point."
+        });
+        yargs.option("k", {
+            alias: "kind",
+            type: "string",
+            describe: "Action kind override. Needed for blackbox images."
+        });
+        yargs.option("i", {
+            alias: "image",
             type: "string",
             describe: "Docker image to use as action runtime."
         });
-        yargs.option("debug-port", {
+        yargs.option("P", {
+            alias: "debug-port",
             type: "number",
-            describe: "Debugging port to expose on action runtime."
+            describe: "Advanced: Debug port to expose on action runtime."
         });
-        yargs.option("debug-command", {
+        yargs.option("C", {
+            alias: "debug-command",
             type: "string",
-            describe: "Debugging command to run in docker image."
+            describe: "Advanced: Debug-enabling command for the runtime."
         });
         yargs.option("t", {
             alias: "agent-timeout",
             type: "number",
-            describe: "Debugging agent timeout in seconds. Use maximum available timeout in OpenWhisk system. Defaults to 5 min."
+            describe: "Advanced: Debugging agent timeout in seconds. Set to maximum available OpenWhisk system. Defaults to 5 min."
         });
         yargs.option("v", {
             alias: "verbose",
             type: "boolean",
             describe: "Verbose output"
         });
-
-        // yargs.option("entry", {
-        //     type: "string",
-        //     describe: "Name of entry source file. Relative to [source-path]."
-        // });
-        // yargs.option("main", {
-        //     type: "string",
-        //     describe: "Name of main function."
-        // });
+        yargs.version();
     },
     async argv => {
         // console.log(argv);
@@ -80,6 +100,7 @@ yargs
         try {
             await new Debugger(argv).run();
         } catch (e) {
+            console.log();
             if (argv.verbose) {
                 console.error(e);
             } else {
