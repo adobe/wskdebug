@@ -67,12 +67,16 @@ class Debugger {
                 const id = activation.$activationId;
                 delete activation.$activationId;
 
+                const startTime = Date.now();
+
                 // run this activation on the local docker container
                 // which will block if the actual debugger hits a breakpoint
                 const result = await this.invoker.run(activation, id);
 
+                const duration = Date.now() - startTime;
+
                 // pass on the local result to the agent in openwhisk
-                await this.completeActivation(actionName, id, result);
+                await this.completeActivation(actionName, id, result, duration);
             }
         } finally {
             await this.onExit(actionName);
@@ -252,13 +256,13 @@ class Debugger {
         return {};
     }
 
-    async completeActivation(actionName, activationId, result) {
+    async completeActivation(actionName, activationId, result, duration) {
         if (this.argv.verbose) {
             console.log();
-            console.log(`Completed activation: ${activationId}`);
+            console.log(`Completed activation ${activationId} in ${duration/1000.0} sec:`);
             console.log(result);
         } else {
-            console.log(" completed.");
+            console.log(` completed in ${duration/1000.0} sec.`);
         }
 
         result.$activationId = activationId;
