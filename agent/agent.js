@@ -21,7 +21,8 @@ const completions = {};
 let debuggerConnected = false;
 
 function checkTimeout(deadline) {
-    if (Date.now() >= ((deadline || process.env.__OW_DEADLINE) - 2000)) {
+    // stop 10 seconds before timeout, to have enough buffer
+    if (Date.now() >= ((deadline || process.env.__OW_DEADLINE) - 10*1000)) {
         const e = new Error("No activation within timeout. Please retry.");
         e.code = 42;
         throw e;
@@ -62,9 +63,12 @@ async function waitForActivation() {
 }
 
 function complete(result) {
+    const id = result.$activationId;
     completions[result.$activationId] = result;
     delete result.$activationId;
-    return {};
+    return {
+        message: `completed activation ${id}`
+    };
 }
 
 async function waitForCompletion(activationId) {

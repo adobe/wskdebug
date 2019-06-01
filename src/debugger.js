@@ -214,6 +214,7 @@ class Debugger {
                 process.stdout.write(".");
             }
             try {
+                // invoke - blocking for up to 1 minute
                 const activation = await this.wsk.actions.invoke({
                     name: actionName,
                     params: {
@@ -221,6 +222,8 @@ class Debugger {
                     },
                     blocking: true
                 });
+
+                // check for successful response with a new activation
                 if (activation && activation.response) {
                     const params = activation.response.result;
                     if (this.argv.verbose) {
@@ -231,11 +234,22 @@ class Debugger {
                         process.stdout.write(`Activation: ${params.$activationId}...`);
                     }
                     return params;
+
+                } else if (activation && activation.activationId) {
+                    // ignore this and retry.
+                    // usually means the action did not respond within one second,
+                    // which in turn is unlikely for the agent who should exit itself
+                    // after 50 seconds, so can only happen if there was some delay
+                    // outside the action itself
+
                 } else {
-                    console.log("Incomplete activation (no response.result):", activation);
+                    // unexpected, just log and retry
+                    console.log("Unexpected empty response while waiting for new activations:", activation);
                 }
 
             } catch(e) {
+                // special error code 42 from agent=> retry
+                // otherwise log error and abort
                 if (this.getActivationError(e).code !== 42) {
                     console.error();
                     console.error("Unexpected error while polling agent for activation:");
@@ -245,7 +259,7 @@ class Debugger {
             }
 
             // some small wait to avoid too many requests in case things run amok
-            await sleep(1000);
+            await sleep(100);
         }
     }
 
