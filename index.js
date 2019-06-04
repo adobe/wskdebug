@@ -98,13 +98,13 @@ yargs
             alias: "port",
             type: "number",
             group: "Debugging options:",
-            describe: "Debug port exposed from action container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the respective kind"
+            describe: "Debug port exposed from action container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the kind. Node.js arguments --inspect, --inspekt-brk and co. can be used too."
         });
         yargs.option("P", {
-            alias: "debug-port",
+            alias: "internal-port",
             type: "number",
             group: "Debugging options:",
-            describe: "Debug port opened by language framework inside the container. Must match the port that is opened by -C/--command. Defaults to standard debug port"
+            describe: "Actual debug port inside the container. Must match the port that is opened by -C/--command. Defaults to standard debug port of the kind"
         });
         yargs.option("C", {
             alias: "command",
@@ -119,6 +119,13 @@ yargs
             describe: "Debugging agent timeout (seconds). Default: 5 min"
         });
 
+        // nodejs options
+        yargs.option("inspect", {
+            alias: ["inspect-brk", "inspect-port", "debug", "debug-brk", "debug-port"],
+            hidden: true,
+            type: "number"
+        });
+
         // general options
         yargs.option("v", {
             alias: "verbose",
@@ -128,6 +135,11 @@ yargs
         yargs.version();
     },
     async argv => {
+        // pass hidden alias to port option
+        if (argv.inspect) {
+            argv.p = argv.port = argv.inspect;
+        }
+
         // console.log(argv);
 
         try {

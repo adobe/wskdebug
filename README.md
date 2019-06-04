@@ -35,8 +35,7 @@ Add the configuration below to your [launch.json](https://code.visualstudio.com/
             "request": "launch",
             "name": "wskdebug MYACTION",
             "runtimeExecutable": "wskdebug",
-            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js", "-p", "9229", "-v" ],
-            "port": 9229,
+            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js" ],
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "/code",
             "outputCapture": "std"
@@ -45,6 +44,8 @@ Add the configuration below to your [launch.json](https://code.visualstudio.com/
 ```
 
 Stop the debugger in VS Code to end the debugging session and `wskdebug`.
+
+For troubleshooting, you can run the debugger in verbose mode by adding `"-v"` to the `args` array.
 
 ### Plain usage
 Run `wskdebug` and specify the action
