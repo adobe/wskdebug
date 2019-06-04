@@ -104,12 +104,12 @@ class OpenWhiskInvoker {
         }
 
         // debugging instructions
-        const debugKind = runtime.debug || baseKind;
+        this.debugKind = runtime.debug || baseKind;
         try {
-            this.debug = require(`${__dirname}/kinds/${debugKind}/${debugKind}`);
+            this.debug = require(`${__dirname}/kinds/${this.debugKind}/${this.debugKind}`);
         } catch (e) {
             if (this.verbose) {
-                console.error(`Cannot find debug info for kind ${debugKind}:`, e.message);
+                console.error(`Cannot find debug info for kind ${this.debugKind}:`, e.message);
             }
             this.debug = {};
         }
@@ -181,17 +181,12 @@ class OpenWhiskInvoker {
             if (!this.debug.mountAction) {
                 throw new Error(`Sorry, mounting sources not yet supported for: ${kind}.`);
             }
-
-            console.log(`Source path: ${this.sourcePath}`);
         }
 
         let extraArgs = "";
         if (this.debug.dockerArgs) {
             extraArgs = resolveValue(this.debug.dockerArgs, this);
         }
-
-        console.log(`Debug type : ${runtime.debug || baseKind}`);
-        console.log(`Debug port : localhost:${this.debug.port}`)
 
         if (this.verbose) {
             console.log(`Starting local debug container ${this.name()}`);
@@ -216,12 +211,26 @@ class OpenWhiskInvoker {
         this.containerRunning = true;
     }
 
+    async logInfo() {
+        if (this.sourcePath) {
+            console.log(`Sources    : ${this.sourcePath}`);
+        }
+        console.log(`Debug type : ${this.debugKind}`);
+        console.log(`Debug port : localhost:${this.debug.port}`)
+    }
+
     async init() {
         let action;
         if (this.sourcePath && this.debug.mountAction) {
             action = resolveValue(this.debug.mountAction, this);
 
+            if (this.verbose) {
+                console.log(`Mounting sources onto local debug container: ${this.sourcePath}`);
+            }
         } else {
+            if (this.verbose) {
+                console.log(`Pushing action code to local debug container: ${this.action.name}`);
+            }
             action = {
                 binary: this.action.exec.binary,
                 main:   this.action.exec.main || "main",

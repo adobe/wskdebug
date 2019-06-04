@@ -21,6 +21,13 @@ async function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
 
+function getAnnotation(action, key) {
+    const a = action.annotations.find(a => a.key === key);
+    if (a) {
+        return a.value;
+    }
+}
+
 class Debugger {
     constructor(argv) {
         this.argv = argv;
@@ -37,13 +44,58 @@ class Debugger {
         return `${name}_wskdebug_original`;
     }
 
+    isAgent(action) {
+        return getAnnotation(action, "wskdebug") ||
+               (getAnnotation(action, "description") || "").startsWith("wskdebug agent.");
+    }
+
+    async checkIfActionIsAgent(actionName, action) {
+        // check if this actoin needs to
+        if (this.isAgent(action)) {
+            // ups, action is our agent, not the original
+            // happens if a previous wskdebug was killed and could not restore before it exited
+            const backupName = this.getActionCopyName(actionName);
+
+            // check the backup action
+            try {
+                const backup = await this.wsk.actions.get(backupName);
+
+                if (this.isAgent(backup)) {
+                    // backup is also an agent (should not happen)
+                    // backup is useless, delete it
+                    // await this.wsk.actions.delete(backupName);
+                    throw new Error(`Dang! Agent is already installed and action backup is broken (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
+
+                } else {
+                    console.log("Agent was already installed, but backup is still present. All good.");
+                }
+
+            } catch (e) {
+                if (e.statusCode === 404) {
+                    // backup missing
+                    throw new Error(`Dang! Agent is already installed and action backup is gone (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
+
+                } else {
+                    // other error
+                    throw e;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     async run() {
         // quick fail for missing requirements such as docker not running
         await OpenWhiskInvoker.checkIfAvailable();
 
-        // get the action
         const actionName = this.argv.action;
+        console.log(`Starting debugger for ${actionName}`);
+
+        // get the action
         const action = await this.getAction(actionName);
+
+        const isAgent = await this.checkIfActionIsAgent(actionName, action);
 
         // local debug container
         this.invoker = new OpenWhiskInvoker(actionName, action, this.wskProps, this.argv);
@@ -53,9 +105,15 @@ class Debugger {
         try {
             // start container & agent
             await this.invoker.start();
-            await this.installAgent(actionName, action);
+            if (!isAgent) {
+                await this.installAgent(actionName, action);
+            }
 
-            console.log(`Ready, waiting for activations of ${actionName}`);
+            console.log();
+            console.log(`Action     : ${actionName}`);
+            this.invoker.logInfo();
+            console.log();
+            console.log(`Ready, waiting for activations`);
             console.log(`Use CTRL+C to exit`);
 
             this.ready = true;
@@ -108,15 +166,15 @@ class Debugger {
 
         const backupName = this.getActionCopyName(actionName);
 
+        if (this.argv.verbose) {
+            console.log(`Installing agent in OpenWhisk. Original action backed up at ${backupName}.`);
+        }
+
         // create copy
         await this.wsk.actions.update({
             name: backupName,
             action: action
         });
-
-        if (this.argv.verbose) {
-            console.log(`Installing agent in OpenWhisk. Original action backed up at ${backupName}.`);
-        }
 
         // overwrite action with agent
         await this.wsk.actions.update({
@@ -133,7 +191,11 @@ class Debugger {
                     timeout: (this.argv.agentTimeout || 300) * 1000,
                     concurrency: 200
                 },
-                annotations: [...action.annotations, { key: "description", value: `wskdebug agent. temporarily installed over original action. original action backup at ${backupName}.` }],
+                annotations: [
+                    ...action.annotations,
+                    { key: "wskdebug", value: true },
+                    { key: "description", value: `wskdebug agent. temporarily installed over original action. original action backup at ${backupName}.` }
+                ],
                 parameters: action.parameters
             }
         });
@@ -145,7 +207,12 @@ class Debugger {
         // ensure we remove the agent when this app gets terminated
         ['SIGINT', 'SIGTERM'].forEach(signal => {
             process.on(signal, async () => {
+                console.log();
+                console.log();
+                process.stdout.write("Shutting down...");
+
                 await this.onExit(actionName);
+
                 process.exit();
             });
         });
@@ -180,8 +247,6 @@ class Debugger {
 
     async restoreAction(actionName) {
         if (this.agentInstalled) {
-            console.log();
-            process.stdout.write("Shutting down...");
             if (this.argv.verbose) {
                 console.log();
                 console.log(`Restoring action`);
