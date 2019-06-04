@@ -16,6 +16,7 @@ const openwhisk = require("openwhisk");
 const wskprops = require('./wskprops');
 const fs = require('fs-extra');
 const OpenWhiskInvoker = require('./invoker');
+const { spawnSync } = require('child_process');
 
 async function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
@@ -62,6 +63,10 @@ class Debugger {
                 await this.installAgent(actionName, action);
             }
 
+            if (this.argv.run) {
+                console.log("Running:", this.argv.run);
+                spawnSync(this.argv.run, {shell: true, stdio: "inherit"});
+            }
             console.log();
             console.log(`Action     : ${actionName}`);
             this.invoker.logInfo();

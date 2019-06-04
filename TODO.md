@@ -9,8 +9,8 @@ TODO List
 * [x] problem with kill in VS code
 * [x] docker logs in stdout
 * [ ] if agent is installed, check if another debugger is running (invoke agent)
-* [ ] extra docker args
-* [ ] custom command to run when debugger is ready, with $args
+* [x] extra docker args
+* [x] custom command to run when debugger is ready
 * [ ] support plain JS actions (no require)
 * [ ] live reload
 * [ ] support openwhisk without concurrency (agent-no-concurrency.js)

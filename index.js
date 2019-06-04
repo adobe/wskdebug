@@ -122,6 +122,12 @@ yargs
             group: "Debugging options:",
             describe: "Debugging agent timeout (seconds). Default: 5 min"
         });
+        yargs.option("R", {
+            alias: "run",
+            type: "string",
+            group: "Debugging options:",
+            describe: "Shell command to run when debugger is up"
+        });
 
         // nodejs options
         yargs.option("inspect", {
