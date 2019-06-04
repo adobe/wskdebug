@@ -32,6 +32,9 @@ module.exports = {
     // return extra docker arguments such as mounting the source path
     dockerArgs: function(invoker) {
         const srcPath = invoker.sourcePath;
+        if (!srcPath) {
+            return "";
+        }
 
         let mountDir;
         if (fs.lstatSync(srcPath).isFile()) {
