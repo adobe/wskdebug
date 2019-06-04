@@ -228,12 +228,9 @@ class Debugger {
 
     async onExit(actionName) {
         try {
-            // concurrently clean up, slightly faster
-            await Promise.all([
-                this.abortPendingActivations(actionName),
-                this.restoreAction(actionName),
-                this.invoker.stop()
-            ]);
+            await this.abortPendingActivations(actionName);
+            await this.restoreAction(actionName);
+            await this.invoker.stop();
 
             // only log this if we started properly
             if (this.ready) {

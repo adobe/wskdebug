@@ -6,7 +6,7 @@ TODO List
 * [x] check if action is agent in case previous restore failed
 * [x] test debugging multiple actions
 * [x] get unique port from vscode by checking for --inspect-brk=nnnn arg
-* [ ] problem with kill in VS code
+* [x] problem with kill in VS code
 * [ ] docker logs in stdout
 * [ ] if agent is installed, check if another debugger is running (invoke agent)
 * [ ] extra docker args
