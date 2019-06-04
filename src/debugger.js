@@ -40,51 +40,6 @@ class Debugger {
         this.wsk = openwhisk(this.wskProps);
     }
 
-    getActionCopyName(name) {
-        return `${name}_wskdebug_original`;
-    }
-
-    isAgent(action) {
-        return getAnnotation(action, "wskdebug") ||
-               (getAnnotation(action, "description") || "").startsWith("wskdebug agent.");
-    }
-
-    async checkIfActionIsAgent(actionName, action) {
-        // check if this actoin needs to
-        if (this.isAgent(action)) {
-            // ups, action is our agent, not the original
-            // happens if a previous wskdebug was killed and could not restore before it exited
-            const backupName = this.getActionCopyName(actionName);
-
-            // check the backup action
-            try {
-                const backup = await this.wsk.actions.get(backupName);
-
-                if (this.isAgent(backup)) {
-                    // backup is also an agent (should not happen)
-                    // backup is useless, delete it
-                    // await this.wsk.actions.delete(backupName);
-                    throw new Error(`Dang! Agent is already installed and action backup is broken (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
-
-                } else {
-                    console.log("Agent was already installed, but backup is still present. All good.");
-                }
-
-            } catch (e) {
-                if (e.statusCode === 404) {
-                    // backup missing
-                    throw new Error(`Dang! Agent is already installed and action backup is gone (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
-
-                } else {
-                    // other error
-                    throw e;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
     async run() {
         // quick fail for missing requirements such as docker not running
         await OpenWhiskInvoker.checkIfAvailable();
@@ -93,9 +48,7 @@ class Debugger {
         console.log(`Starting debugger for ${actionName}`);
 
         // get the action
-        const action = await this.getAction(actionName);
-
-        const isAgent = await this.checkIfActionIsAgent(actionName, action);
+        const { action, agentInstalled } = await this.getAction(actionName);
 
         // local debug container
         this.invoker = new OpenWhiskInvoker(actionName, action, this.wskProps, this.argv);
@@ -105,7 +58,7 @@ class Debugger {
         try {
             // start container & agent
             await this.invoker.start();
-            if (!isAgent) {
+            if (!agentInstalled) {
                 await this.installAgent(actionName, action);
             }
 
@@ -141,17 +94,71 @@ class Debugger {
         }
     }
 
-    async getAction(actionName) {
+    async getWskAction(actionName) {
         try {
             return await this.wsk.actions.get(actionName);
-
         } catch (e) {
             if (e.statusCode === 404) {
-                throw new Error(`Action not found: ${actionName}`);
+                return null;
             } else {
                 throw e;
             }
         }
+    }
+
+    getActionCopyName(name) {
+        return `${name}_wskdebug_original`;
+    }
+
+    isAgent(action) {
+        return getAnnotation(action, "wskdebug") ||
+               (getAnnotation(action, "description") || "").startsWith("wskdebug agent.");
+    }
+
+    async getAction(actionName) {
+        let action = await this.getWskAction(actionName);
+        if (action === null) {
+            throw new Error(`Action not found: ${actionName}`);
+        }
+
+        let agentInstalled = false;
+
+        // check if this actoin needs to
+        if (this.isAgent(action)) {
+            // ups, action is our agent, not the original
+            // happens if a previous wskdebug was killed and could not restore before it exited
+            const backupName = this.getActionCopyName(actionName);
+
+            // check the backup action
+            try {
+                const backup = await this.wsk.actions.get(backupName);
+
+                if (this.isAgent(backup)) {
+                    // backup is also an agent (should not happen)
+                    // backup is useless, delete it
+                    // await this.wsk.actions.delete(backupName);
+                    throw new Error(`Dang! Agent is already installed and action backup is broken (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
+
+                } else {
+                    console.log("Agent was already installed, but backup is still present. All good.");
+
+                    // need to look at the original action
+                    action = backup;
+                    agentInstalled = true;
+                }
+
+            } catch (e) {
+                if (e.statusCode === 404) {
+                    // backup missing
+                    throw new Error(`Dang! Agent is already installed and action backup is gone (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
+
+                } else {
+                    // other error
+                    throw e;
+                }
+            }
+        }
+        return {action, agentInstalled };
     }
 
     async installAgent(actionName, action) {
