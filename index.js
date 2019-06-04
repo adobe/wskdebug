@@ -60,8 +60,7 @@ yargs
     each new activation (might depend on the kind).
 
     Supported kinds:
-
-      - ${getSupportedKinds().join("\n")}
+    - ${getSupportedKinds().join("\n")}
     `,
     yargs => {
         yargs.positional('action', {
