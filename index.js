@@ -17,10 +17,26 @@
 const yargs = require("yargs");
 const Debugger = require("./src/debugger");
 const path = require("path");
+const fs = require("fs");
 
 const consoleError = console.error;
 console.error = (...args) => {
     consoleError(...args.map(a => `\x1b[31m${a}\x1b[0m`) );
+}
+
+function getSupportedKinds() {
+    const kinds = [];
+    const basePath = path.resolve(__dirname, "src/kinds");
+    // console.log("listing children of", basePath);
+    fs.readdirSync(basePath).forEach(function(entry) {
+        const p = path.resolve(basePath, entry);
+        if (fs.statSync(p).isDirectory()) {
+            // console.log("-", entry);
+            const kind = require(path.resolve(p, entry));
+            kinds.push(`${entry}: ${kind.description}`);
+        }
+    });
+    return kinds;
 }
 
 yargs
@@ -34,63 +50,81 @@ yargs
 .version(false)
 .command(
     "* <action> [source-path]",
-    `Apache OpenWhisk Debugger
+    `Debug an OpenWhisk <action> by forwarding its activations to a local docker
+    container with debugging enabled and debug port exposed to the host.
 
-    Debug OpenWhisk actions using local docker containers as runtimes. If only
-    <action> is specified, the debugger will use the deployed action code.
+    If only <action> is specified, the deployed action code is used.
 
-    Use [source-path] to point to a local file or folder containing the action
-    sources. The debugger will dynamically mount these on the action runtime and
-    automatically reload the code on each new activation. Configure the IDE debug
-    configuration with this as the source path.
+    Specify [source-path] pointing to the local sources of the action to dynamically
+    mount them in the debug container. Sources will be automatically reloaded on
+    each new activation (might depend on the kind).
 
-    Please note that [source-path] is currently only supported for Node JS actions
-    with a kind "nodejs:*".`,
+    Supported kinds:
+
+      - ${getSupportedKinds().join("\n")}
+    `,
     yargs => {
         yargs.positional('action', {
-            describe: 'Name of action to debug. Required.',
+            describe: 'Name of action to debug',
             type: 'string'
         });
         yargs.positional('source-path', {
-            describe: 'Path to local action sources, folder or file.',
+            describe: 'Path to local action sources, file or folder (optional)',
             type: 'string',
             coerce: path.resolve // ensure absolute path
         });
 
+        // action options
         yargs.option("m", {
             alias: "main",
             type: "string",
-            describe: "Name of action entry point."
+            group: "Action options:",
+            describe: "Name of action entry point"
         });
         yargs.option("k", {
             alias: "kind",
             type: "string",
-            describe: "Action kind override. Needed for blackbox images."
+            group: "Action options:",
+            describe: "Action kind override, needed for blackbox images"
         });
         yargs.option("i", {
             alias: "image",
             type: "string",
-            describe: "Docker image to use as action runtime."
+            group: "Action options:",
+            describe: "Docker image to use as action container"
+        });
+
+        // debugging options
+        yargs.option("p", {
+            alias: "port",
+            type: "number",
+            group: "Debugging options:",
+            describe: "Debug port exposed from action container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the respective kind"
         });
         yargs.option("P", {
             alias: "debug-port",
             type: "number",
-            describe: "Advanced: Debug port to expose on action runtime."
+            group: "Debugging options:",
+            describe: "Debug port opened by language framework inside the container. Must match the port that is opened by -C/--command. Defaults to standard debug port"
         });
         yargs.option("C", {
-            alias: "debug-command",
+            alias: "command",
             type: "string",
-            describe: "Advanced: Debug-enabling command for the runtime."
+            group: "Debugging options:",
+            describe: "Container command override that enables debugging"
         });
         yargs.option("t", {
             alias: "agent-timeout",
             type: "number",
-            describe: "Advanced: Debugging agent timeout in seconds. Set to maximum available OpenWhisk system. Defaults to 5 min."
+            group: "Debugging options:",
+            describe: "Debugging agent timeout (seconds). Default: 5 min"
         });
+
+        // general options
         yargs.option("v", {
             alias: "verbose",
             type: "boolean",
-            describe: "Verbose output"
+            describe: "Verbose output. Logs activation parameters and result"
         });
         yargs.version();
     },

@@ -19,10 +19,15 @@ const fs = require('fs-extra');
 const CODE_MOUNT = "/code";
 
 module.exports = {
+    description: "Node.js V8 inspect debugger on port 9229. Supports source mount",
+
     // additional debug port to expose
     port: 9229,
+
     // modified docker image command/entrypoint to enable debugging
-    command: "node --expose-gc --inspect=0.0.0.0:9229 app.js",
+    command: function(invoker) {
+        return `node --expose-gc --inspect=0.0.0.0:${invoker.debug.internalPort} app.js`
+    },
 
     // return extra docker arguments such as mounting the source path
     dockerArgs: function(invoker) {
@@ -41,7 +46,7 @@ module.exports = {
     },
 
     // return action for /init that mounts the sources specified by invoker.sourcePath
-    getMountAction: function(invoker) {
+    mountAction: function(invoker) {
         // bridge that mounts local source path
         let code = fs.readFileSync(`${__dirname}/mount.js`, {encoding: 'utf8'});
         code = code.replace("$$main$$",        invoker.main || "main");

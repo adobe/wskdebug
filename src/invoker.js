@@ -38,6 +38,16 @@ function execute(cmd, options, verbose) {
     }
 }
 
+// if value is a function, invoke it with args, otherwise return it as object
+// if value is undefined, will return undefined
+function resolveValue(value, ...args) {
+    if (typeof value === "function") {
+        return value(...args);
+    } else {
+        return value;
+    }
+}
+
 class OpenWhiskInvoker {
     constructor(actionName, action, wskProps, options) {
         this.actionName = actionName;
@@ -46,8 +56,9 @@ class OpenWhiskInvoker {
 
         this.kind = options.kind;
         this.image = options.image;
-        this.debugPort = options.debugPort;
-        this.debugCommand = options.debugCommand;
+        this.port = options.port;
+        this.internalPort = options.internalPort;
+        this.command = options.command;
         this.verbose = options.verbose;
         this.sourcePath = options.sourcePath;
         this.main = options.main;
@@ -103,15 +114,63 @@ class OpenWhiskInvoker {
             this.debug = {};
         }
 
-        const debug = this.debug;
-        debug.port = this.debugPort || debug.port;
-        debug.command = this.debugCommand || debug.command;
+        /*
 
-        if (!debug.port) {
-            throw new Error(`No debug port known for kind: ${kind}. Please specify --debug-port.`);
+        debug one action with supported kind
+
+            wskdebug action1
+
+            => port         := default debug port
+            => internalPort := default debug port
+
+        debug multiple actions, need different ports
+
+            wskdebug action1 -p 1001
+            wskdebug action2 -p 1002
+            wskdebug action3 -p 1003
+
+            => port         := -p <port>
+            => internalPort := default debug port
+
+        custom debug command for unsupported kind
+
+            wskdebug go-action -P 1234 -C "go -debug 1234"
+
+            => port         := -P <port>
+            => internalPort := -P <port>
+
+        fix debug port for supported kind?
+
+            wskdebug go-action -P 9999
+
+            => port         := -P <port>
+            => internalPort := -P <port>
+
+        debug multiple actions with custom debug command
+
+            wskdebug go-action1 -p 1001 -P 1234 -C "go -debug 1234"
+            wskdebug go-action2 -p 1002 -P 1234 -C "go -debug 1234"
+            wskdebug go-action3 -p 1003 -P 1234 -C "go -debug 1234"
+
+            => port         := -p <port>
+            => internalPort := -P <port>
+        */
+
+       this.debug.internalPort = this.internalPort                      || resolveValue(this.debug.port, this);
+       this.debug.port         = this.port         || this.internalPort || resolveValue(this.debug.port, this);
+
+        // ------------------------
+
+        this.debug.command = this.command || resolveValue(this.debug.command, this);
+
+        if (!this.debug.port) {
+            throw new Error(`No debug port known for kind: ${kind}. Please specify --port.`);
         }
-        if (!debug.command) {
-            throw new Error(`No debug command known for kind: ${kind}. Please specify --debug-command.`);
+        if (!this.debug.internalPort) {
+            throw new Error(`No debug port known for kind: ${kind}. Please specify --internal-port.`);
+        }
+        if (!this.debug.command) {
+            throw new Error(`No debug command known for kind: ${kind}. Please specify --command.`);
         }
 
         // limits
@@ -119,7 +178,7 @@ class OpenWhiskInvoker {
 
         // source mounting
         if (this.sourcePath) {
-            if (!debug.getMountAction) {
+            if (!this.debug.mountAction) {
                 throw new Error(`Sorry, mounting sources not yet supported for: ${kind}.`);
             }
 
@@ -127,12 +186,12 @@ class OpenWhiskInvoker {
         }
 
         let extraArgs = "";
-        if (debug.dockerArgs) {
-            extraArgs = debug.dockerArgs(this);
+        if (this.debug.dockerArgs) {
+            extraArgs = resolveValue(this.debug.dockerArgs, this);
         }
 
         console.log(`Debug type : ${runtime.debug || baseKind}`);
-        console.log(`Debug port : localhost:${debug.port}`)
+        console.log(`Debug port : localhost:${this.debug.port}`)
 
         if (this.verbose) {
             console.log(`Starting local debug container ${this.name()}`);
@@ -145,10 +204,10 @@ class OpenWhiskInvoker {
                 --rm
                 -m ${memory}
                 -p ${RUNTIME_PORT}
-                -p ${debug.port}:${debug.port}
+                -p ${this.debug.port}:${this.debug.internalPort}
                 ${extraArgs}
                 ${image}
-                ${debug.command}
+                ${this.debug.command}
             `,
             {},
             this.verbose
@@ -159,8 +218,8 @@ class OpenWhiskInvoker {
 
     async init() {
         let action;
-        if (this.sourcePath && this.debug.getMountAction) {
-            action = this.debug.getMountAction(this);
+        if (this.sourcePath && this.debug.mountAction) {
+            action = resolveValue(this.debug.mountAction, this);
 
         } else {
             action = {

@@ -11,7 +11,7 @@ Command line tool to debug OpenWhisk actions in your favorite IDE or debugger. R
 
 One caveat: web actions or other blocking invocations time out after 1 minute in OpenWhisk. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation will not expect. However, there is no time limit on stepping through the code itself.
 
-Node JS runtimes are supported out of the box. For other languages, you need to specify `--debug-port` and `--debug-command` arguments, and possibly `--image`.
+Node.js runtimes are supported out of the box. For other languages, you need to specify `--port` (and/or `--internal-port`) and `--command` arguments, and possibly `--image`.
 
 ## Installation
 
@@ -24,24 +24,27 @@ npm install -g @nui/wskdebug
 
 The action to debug (e.g. `myaction`) must already be deployed.
 
-### Visual Studio Code - Node JS
+### Visual Studio Code - Node.js
 
-Add the configuration below to your [launch.json](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `myaction` with the name of your action. When you run this, it will start wskdebug and should automatically connect the debugger.
-
-Currently, to find the code to debug, you will have to look in the debug panel on the left side under "Loaded Scripts" &gt; "&lt;eval&gt;", and find the eval snippet that is your action code. You can then set breakpoints. This will be improved in future versions.
+Add the configuration below to your [launch.json](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `MYACTION` with the name of your action and `ACTION.js` with the source file containing the action. When you run this, it will start wskdebug and should automatically connect the debugger.
 
 ```
     "configurations": [
         {
             "type": "node",
             "request": "launch",
-            "name": "Debug myaction",
-            "program": "wskdebug",
-            "args": ["myaction"],
-            "port": 9229
+            "name": "wskdebug MYACTION",
+            "runtimeExecutable": "wskdebug",
+            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js", "-p", "9229", "-v" ],
+            "port": 9229,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/code",
+            "outputCapture": "std"
         }
     ]
 ```
+
+Stop the debugger in VS Code to end the debugging session and `wskdebug`.
 
 ### Plain usage
 Run `wskdebug` and specify the action
@@ -63,7 +66,7 @@ You can then use a debugger to connect to the debug port, in this case `localhos
 
 When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and remove the forwarding agent and restore the original action.
 
-#### Node JS: Chrome DevTools
+#### Node.js: Chrome DevTools
 
 1. Open Chrome
 2. Enter `about:inspect`
@@ -79,7 +82,7 @@ When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and re
 
 See also this [article](https://medium.com/@paul_irish/debugging-node-js-nightlies-with-chrome-devtools-7c4a1b95ae27).
 
-#### Node JS: node-inspect command line
+#### Node.js: node-inspect command line
 Use the command line Node debugger [node-inspect](https://github.com/nodejs/node-inspect):
 
 ```
@@ -131,21 +134,43 @@ wsk action delete myaction_wskdebug_original
 ## Help
 
 ```
-wskdebug <action>
+wskdebug <action> [source-path]
 
-Apache OpenWhisk debugger
+Debug an OpenWhisk <action> by forwarding its activations to a local docker
+container with debugging enabled and debug port exposed to the host.
+
+If only <action> is specified, the deployed action code is used.
+
+Specify [source-path] pointing to the local sources of the action to dynamically
+mount them in the debug container. Sources will be automatically reloaded on
+each new activation (might depend on the kind).
+
+Supported kinds:
+
+- nodejs: Node.js V8 inspect debugger on port 9229. Supports source mount
+
 
 Arguments:
-  action  Name of action to debug (required).                           
+  action       Name of action to debug
+  source-path  Path to local action sources, file or folder (optional)
+
+Action options:
+  -m, --main   Name of action entry point
+  -k, --kind   Action kind override, needed for blackbox images
+  -i, --image  Docker image to use as action container
+
+Debugging options:
+  -p, --port           Debug port exposed from action container that debugging
+                       clients connect to. Defaults to -P/--internal-port if set
+                       or standard debug port of the respective kind
+  -P, --debug-port     Debug port opened by language framework inside the
+                       container. Must match the port that is opened by
+                       -C/--command. Defaults to standard debug port
+  -C, --command        Container command override that enables debugging
+  -t, --agent-timeout  Debugging agent timeout (seconds). Default: 5 min
 
 Options:
-  --version            Print the wskdebug version                      
-  --kind               Action kind. Required for blackbox images.       
-  --image              Docker image to use as action runtime.           
-  --debug-port         Debugging port to expose on action runtime.      
-  --debug-command      Debugging command to run in docker image.        
-  -t, --agent-timeout  Debugging agent timeout in seconds. Use maximum available
-                       timeout in OpenWhisk system. Defaults to 5 min.  
-  -v, --verbose        Verbose output                                  
-  -h, --help           Show help                                       
-```
+  -v, --verbose  Verbose output. Logs activation parameters and result
+  --version      Show version number
+  -h, --help     Show help
+  ```
