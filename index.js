@@ -53,7 +53,7 @@ yargs
     `Debug an OpenWhisk <action> by forwarding its activations to a local docker
     container with debugging enabled and debug port exposed to the host.
 
-    If only <action> is specified, the deployed action code is used.
+    If only <action> is specified, the deployed action code is debugged.
 
     Specify [source-path] pointing to the local sources of the action to dynamically
     mount them in the debug container. Sources will be automatically reloaded on
@@ -112,8 +112,12 @@ yargs
             group: "Debugging options:",
             describe: "Container command override that enables debugging"
         });
-        yargs.option("t", {
-            alias: "agent-timeout",
+        yargs.option("docker-args", {
+            type: "string",
+            group: "Debugging options:",
+            describe: "Additional docker run arguments for container.\nMust be quoted and start with space:\n'wskdebug --docker-args \" -e key=var\" myaction'"
+        });
+        yargs.option("agent-timeout", {
             type: "number",
             group: "Debugging options:",
             describe: "Debugging agent timeout (seconds). Default: 5 min"

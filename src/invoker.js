@@ -59,6 +59,7 @@ class OpenWhiskInvoker {
         this.port = options.port;
         this.internalPort = options.internalPort;
         this.command = options.command;
+        this.dockerArgs = options.dockerArgs;
         this.verbose = options.verbose;
         this.sourcePath = options.sourcePath;
         this.main = options.main;
@@ -183,10 +184,8 @@ class OpenWhiskInvoker {
             }
         }
 
-        let extraArgs = "";
-        if (this.debug.dockerArgs) {
-            extraArgs = resolveValue(this.debug.dockerArgs, this);
-        }
+        const dockerArgsFromKind = resolveValue(this.debug.dockerArgs, this) || "";
+        const dockerArgsFromUser = this.dockerArgs || "";
 
         if (this.verbose) {
             console.log(`Starting local debug container ${this.name()}`);
@@ -200,7 +199,8 @@ class OpenWhiskInvoker {
                 -m ${memory}
                 -p ${RUNTIME_PORT}
                 -p ${this.debug.port}:${this.debug.internalPort}
-                ${extraArgs}
+                ${dockerArgsFromKind}
+                ${dockerArgsFromUser}
                 ${image}
                 ${this.debug.command}
             `,
