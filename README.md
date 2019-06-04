@@ -140,14 +140,13 @@ wskdebug <action> [source-path]
 Debug an OpenWhisk <action> by forwarding its activations to a local docker
 container with debugging enabled and debug port exposed to the host.
 
-If only <action> is specified, the deployed action code is used.
+If only <action> is specified, the deployed action code is debugged.
 
 Specify [source-path] pointing to the local sources of the action to dynamically
 mount them in the debug container. Sources will be automatically reloaded on
 each new activation (might depend on the kind).
 
 Supported kinds:
-
 - nodejs: Node.js V8 inspect debugger on port 9229. Supports source mount
 
 
@@ -160,18 +159,26 @@ Action options:
   -k, --kind   Action kind override, needed for blackbox images
   -i, --image  Docker image to use as action container
 
+LiveReload options:
+  -l, --live-reload  Enable LiveReload. [source-path] is required
+
 Debugging options:
   -p, --port           Debug port exposed from action container that debugging
                        clients connect to. Defaults to -P/--internal-port if set
-                       or standard debug port of the respective kind
-  -P, --debug-port     Debug port opened by language framework inside the
-                       container. Must match the port that is opened by
-                       -C/--command. Defaults to standard debug port
+                       or standard debug port of the kind. Node.js arguments
+                       --inspect, --inspekt-brk and co. can be used too.
+  -P, --internal-port  Actual debug port inside the container. Must match the
+                       port that is opened by -C/--command. Defaults to standard
+                       debug port of the kind
   -C, --command        Container command override that enables debugging
-  -t, --agent-timeout  Debugging agent timeout (seconds). Default: 5 min
+  --docker-args        Additional docker run arguments for container.
+                       Must be quoted and start with space:
+                       'wskdebug --docker-args " -e key=var" myaction'
+  --agent-timeout      Debugging agent timeout (seconds). Default: 5 min
+  -R, --run            Shell command to run when debugger is up
 
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result
   --version      Show version number
   -h, --help     Show help
-  ```
+```
