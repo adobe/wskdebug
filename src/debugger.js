@@ -48,7 +48,7 @@ class Debugger {
         console.log(`Starting debugger for ${actionName}`);
 
         // get the action
-        const { action, agentInstalled } = await this.getAction(actionName);
+        const { action, agentAlreadyInstalled } = await this.getAction(actionName);
 
         // local debug container
         this.invoker = new OpenWhiskInvoker(actionName, action, this.wskProps, this.argv);
@@ -58,7 +58,7 @@ class Debugger {
         try {
             // start container & agent
             await this.invoker.start();
-            if (!agentInstalled) {
+            if (!agentAlreadyInstalled) {
                 await this.installAgent(actionName, action);
             }
 
@@ -121,7 +121,7 @@ class Debugger {
             throw new Error(`Action not found: ${actionName}`);
         }
 
-        let agentInstalled = false;
+        let agentAlreadyInstalled = false;
 
         // check if this actoin needs to
         if (this.isAgent(action)) {
@@ -144,7 +144,8 @@ class Debugger {
 
                     // need to look at the original action
                     action = backup;
-                    agentInstalled = true;
+                    agentAlreadyInstalled = true;
+                    this.agentInstalled = true;
                 }
 
             } catch (e) {
@@ -158,7 +159,7 @@ class Debugger {
                 }
             }
         }
-        return {action, agentInstalled };
+        return {action, agentAlreadyInstalled };
     }
 
     async installAgent(actionName, action) {
@@ -232,7 +233,7 @@ class Debugger {
                 this.abortPendingActivations(actionName),
                 this.restoreAction(actionName),
                 this.invoker.stop()
-            ])
+            ]);
 
             // only log this if we started properly
             if (this.ready) {
