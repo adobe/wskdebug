@@ -15,8 +15,11 @@
 // https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json
 // note: openwhisk deployments might have their own versions
 module.exports = {
-    "nodejs"         : { // deprecated, image no longer available
-        image: "openwhisk/nodejsaction:latest"
+    "nodejs"         : { // deprecated (no version)
+        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
+    },
+    "nodejs:default" : { // Adobe I/O Runtime specific
+        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
     },
     "nodejs:6"       : {
         image: "openwhisk/nodejs6action:latest"
@@ -32,10 +35,7 @@ module.exports = {
     "nodejs:12"      : {
         image: "openwhisk/action-nodejs-v12:latest"
     },
-    "nodejs:default" : { // Adobe I/O Runtime specific
-        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
-    },
-    "python"         : {
+    "python"         : { // deprecated (no version)
         image: "openwhisk/python2action:latest"
     },
     "python:2"       : {
@@ -44,8 +44,8 @@ module.exports = {
     "python:3"       : {
         image: "openwhisk/python3action:latest"
     },
-    "swift"          : { // deprecated, image no longer available
-        image: "openwhisk/swiftaction:latest"
+    "swift"          : { // deprecated (no version)
+        image: "openwhisk/action-swift-v4.1:latest"
     },
     "swift:3"        : { // deprecated, but still available
         image: "openwhisk/swift3action:latest"
@@ -56,6 +56,9 @@ module.exports = {
     "swift:4.1"      : {
         image: "openwhisk/action-swift-v4.1:latest"
     },
+    "swift:4.2"      : {
+        image: "openwhisk/action-swift-v4.2:latest"
+    },
     "java"           : {
         image: "openwhisk/java8action:latest"
     },
@@ -64,6 +67,21 @@ module.exports = {
     },
     "php:7.2"        : {
         image: "openwhisk/action-php-v7.2:latest"
+    },
+    "php:7.3"        : {
+        image: "openwhisk/action-php-v7.3:latest"
+    },
+    "ruby:2.5"       : {
+        image: "openwhisk/action-ruby-v2.5:latest"
+    },
+    "go:1.11"        : {
+        image: "openwhisk/actionloop-golang-v1.11:latest"
+    },
+    "dotnet:2.2"     : {
+        image: "openwhisk/action-dotnet-v2.2:latest"
+    },
+    "ballerina:0.990": {
+        image: "openwhisk/action-ballerina-v0.990.2:latest"
     },
     "native"         : {
         image: "openwhisk/dockerskeleton:latest"
