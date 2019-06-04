@@ -12,7 +12,6 @@
 
 'use strict';
 
-const path = require('path');
 const fs = require('fs-extra');
 
 // path inside docker container where action code is mounted
@@ -31,21 +30,7 @@ module.exports = {
 
     // return extra docker arguments such as mounting the source path
     dockerArgs: function(invoker) {
-        const srcPath = invoker.sourcePath;
-        if (!srcPath) {
-            return "";
-        }
-
-        let mountDir;
-        if (fs.lstatSync(srcPath).isFile()) {
-            mountDir = path.dirname(srcPath);
-            invoker.moduleFile = `/${path.basename(srcPath)}`;
-        } else {
-            mountDir = srcPath;
-            invoker.moduleFile = "";
-        }
-
-        return `-v ${mountDir}:${CODE_MOUNT}`;
+        return `-v ${invoker.sourceDir}:${CODE_MOUNT}`;
     },
 
     // return action for /init that mounts the sources specified by invoker.sourcePath
@@ -53,8 +38,8 @@ module.exports = {
         // bridge that mounts local source path
         let code = fs.readFileSync(`${__dirname}/mount.js`, {encoding: 'utf8'});
         code = code.replace("$$main$$",        invoker.main || "main");
-        code = code.replace("$$requirePath$$", CODE_MOUNT + invoker.moduleFile);
-        code = code.replace("$$moduleFile$$",  invoker.moduleFile);
+        code = code.replace("$$requirePath$$", `${CODE_MOUNT}/${invoker.sourceFile}`);
+        code = code.replace("$$moduleFile$$",  invoker.sourceFile);
 
         return {
             binary: false,

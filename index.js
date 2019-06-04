@@ -93,6 +93,15 @@ yargs
             describe: "Docker image to use as action container"
         });
 
+        // livereload
+        yargs.option("l", {
+            alias: "live-reload",
+            type: "boolean",
+            implies: "source-path",
+            group: "LiveReload options:",
+            describe: "Enable LiveReload. [source-path] is required"
+        });
+
         // debugging options
         yargs.option("p", {
             alias: "port",
@@ -149,8 +158,6 @@ yargs
         if (argv.inspect) {
             argv.p = argv.port = argv.inspect;
         }
-
-        // console.log(argv);
 
         try {
             await new Debugger(argv).run();

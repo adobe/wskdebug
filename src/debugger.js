@@ -14,9 +14,11 @@
 
 const openwhisk = require("openwhisk");
 const wskprops = require('./wskprops');
+const path = require('path');
 const fs = require('fs-extra');
 const OpenWhiskInvoker = require('./invoker');
 const { spawnSync } = require('child_process');
+const livereload = require('livereload');
 
 async function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
@@ -39,7 +41,16 @@ class Debugger {
         }
 
         this.wsk = openwhisk(this.wskProps);
-    }
+
+        const srcPath = this.argv.sourcePath;
+        if (fs.lstatSync(srcPath).isFile()) {
+            this.argv.sourceDir = path.dirname(srcPath);
+            this.argv.sourceFile = path.basename(srcPath);
+        } else {
+            this.argv.sourceDir = srcPath;
+            this.argv.sourceFile = "";
+        }
+}
 
     async run() {
         // quick fail for missing requirements such as docker not running
@@ -57,6 +68,11 @@ class Debugger {
         this.registerExitHandler(actionName);
 
         try {
+            // start live reload
+            if (this.argv.liveReload && this.argv.sourceDir) {
+                await this.startLiveReload();
+            }
+
             // start container & agent
             await this.invoker.start();
             if (!agentAlreadyInstalled) {
@@ -306,7 +322,7 @@ class Debugger {
                         console.log(`Activation: ${params.$activationId}`);
                         console.log(params);
                     } else {
-                        process.stdout.write(`Activation: ${params.$activationId}...`);
+                        console.log(`Activation: ${params.$activationId}`);
                     }
                     return params;
 
@@ -351,7 +367,7 @@ class Debugger {
             console.log(`Completed activation ${activationId} in ${duration/1000.0} sec:`);
             console.log(result);
         } else {
-            console.log(` completed in ${duration/1000.0} sec.`);
+            console.log(`...completed in ${duration/1000.0} sec.`);
         }
 
         result.$activationId = activationId;
@@ -373,6 +389,12 @@ class Debugger {
         } catch (e) {
             return false;
         }
+    }
+
+    async startLiveReload() {
+        const liveReloadServer = livereload.createServer();
+        liveReloadServer.watch(this.argv.sourceDir);
+        console.log("LiveReload enabled on", this.argv.sourceDir);
     }
 }
 

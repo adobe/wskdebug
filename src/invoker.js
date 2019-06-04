@@ -15,6 +15,8 @@
 const { spawn, execSync } = require('child_process');
 const fetch = require('fetch-retry');
 const kinds = require('./kinds/kinds');
+const path = require('path');
+const fs = require('fs-extra');
 
 const RUNTIME_PORT = 8080;
 const INIT_RETRY_DELAY_MS = 100;
@@ -62,6 +64,8 @@ class OpenWhiskInvoker {
         this.dockerArgs = options.dockerArgs;
         this.verbose = options.verbose;
         this.sourcePath = options.sourcePath;
+        this.sourceDir = options.sourceDir;
+        this.sourceFile = options.sourceFile;
         this.main = options.main;
 
         this.containerName = `wskdebug-${this.action.name}-${Date.now()}`;

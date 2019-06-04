@@ -19,6 +19,7 @@
     "dependencies": {
         "fetch-retry": "^2.2.0",
         "fs-extra": "^8.0.1",
+        "livereload": "^0.8.0",
         "openwhisk": "^3.19.0",
         "yargs": "^13.2.4"
     },
