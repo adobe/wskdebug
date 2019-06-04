@@ -1,7 +1,7 @@
 wskdebug - Apache OpenWhisk debugger
 ====================================
 
-Command line tool to debug OpenWhisk actions in your favorite IDE or debugger. Requires a local [Docker](https://www.docker.com/products/docker-desktop) environment.
+Command line tool to debug OpenWhisk actions in your favorite IDE or debugger, including automatic code reloading and LiveReload for web actions. Requires a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
 **Note: This is a prerelease version. Currently under the Adobe internal @nui npm scope, but planning to open source. The next todos are tracked in [TODO.md](TODO.md).**
 
@@ -35,7 +35,7 @@ Add the configuration below to your [launch.json](https://code.visualstudio.com/
             "request": "launch",
             "name": "wskdebug MYACTION",
             "runtimeExecutable": "wskdebug",
-            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js" ],
+            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js", "--live-reload" ],
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "/code",
             "outputCapture": "std"
