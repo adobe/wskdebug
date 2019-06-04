@@ -115,50 +115,8 @@ class OpenWhiskInvoker {
             this.debug = {};
         }
 
-        /*
-
-        debug one action with supported kind
-
-            wskdebug action1
-
-            => port         := default debug port
-            => internalPort := default debug port
-
-        debug multiple actions, need different ports
-
-            wskdebug action1 -p 1001
-            wskdebug action2 -p 1002
-            wskdebug action3 -p 1003
-
-            => port         := -p <port>
-            => internalPort := default debug port
-
-        custom debug command for unsupported kind
-
-            wskdebug go-action -P 1234 -C "go -debug 1234"
-
-            => port         := -P <port>
-            => internalPort := -P <port>
-
-        fix debug port for supported kind?
-
-            wskdebug go-action -P 9999
-
-            => port         := -P <port>
-            => internalPort := -P <port>
-
-        debug multiple actions with custom debug command
-
-            wskdebug go-action1 -p 1001 -P 1234 -C "go -debug 1234"
-            wskdebug go-action2 -p 1002 -P 1234 -C "go -debug 1234"
-            wskdebug go-action3 -p 1003 -P 1234 -C "go -debug 1234"
-
-            => port         := -p <port>
-            => internalPort := -P <port>
-        */
-
-       this.debug.internalPort = this.internalPort                      || resolveValue(this.debug.port, this);
-       this.debug.port         = this.port         || this.internalPort || resolveValue(this.debug.port, this);
+        this.debug.internalPort = this.internalPort                      || resolveValue(this.debug.port, this);
+        this.debug.port         = this.port         || this.internalPort || resolveValue(this.debug.port, this);
 
         // ------------------------
 
