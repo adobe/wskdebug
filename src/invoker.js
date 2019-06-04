@@ -12,7 +12,7 @@
 
 'use strict';
 
-const { execSync } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fetch = require('fetch-retry');
 const kinds = require('./kinds/kinds');
 
@@ -209,6 +209,8 @@ class OpenWhiskInvoker {
         );
 
         this.containerRunning = true;
+
+        spawn("docker", ["logs", "-t", "-f", this.name()], {stdio: "inherit"});
     }
 
     async logInfo() {

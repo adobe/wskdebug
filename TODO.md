@@ -7,7 +7,7 @@ TODO List
 * [x] test debugging multiple actions
 * [x] get unique port from vscode by checking for --inspect-brk=nnnn arg
 * [x] problem with kill in VS code
-* [ ] docker logs in stdout
+* [x] docker logs in stdout
 * [ ] if agent is installed, check if another debugger is running (invoke agent)
 * [ ] extra docker args
 * [ ] custom command to run when debugger is ready, with $args
