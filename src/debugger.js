@@ -57,7 +57,7 @@ class Debugger {
         await OpenWhiskInvoker.checkIfAvailable();
 
         const actionName = this.argv.action;
-        console.log(`Starting debugger for /${this.wskProps.namespace}/${actionName}`);
+        console.info(`Starting debugger for /${this.wskProps.namespace}/${actionName}`);
 
         // get the action
         const { action, agentAlreadyInstalled } = await this.getAction(actionName);
@@ -84,11 +84,11 @@ class Debugger {
                 spawnSync(this.argv.onStart, {shell: true, stdio: "inherit"});
             }
             console.log();
-            console.log(`Action     : ${actionName}`);
+            console.info(`Action     : ${actionName}`);
             this.invoker.logInfo();
             console.log();
-            console.log(`Ready, waiting for activations`);
-            console.log(`Use CTRL+C to exit`);
+            console.info(`Ready, waiting for activations`);
+            console.info(`Use CTRL+C to exit`);
 
             this.ready = true;
 
@@ -161,7 +161,7 @@ class Debugger {
                     throw new Error(`Dang! Agent is already installed and action backup is broken (${backupName}).\n\nPlease redeploy your action first before running wskdebug again.`);
 
                 } else {
-                    console.log("Agent was already installed, but backup is still present. All good.");
+                    console.warn("Agent was already installed, but backup is still present. All good.");
 
                     // need to look at the original action
                     action = backup;
@@ -326,10 +326,10 @@ class Debugger {
                     const params = activation.response.result;
                     if (this.argv.verbose) {
                         console.log();
-                        console.log(`Activation: ${params.$activationId}`);
+                        console.info(`Activation: ${params.$activationId}`);
                         console.log(params);
                     } else {
-                        console.log(`Activation: ${params.$activationId}`);
+                        console.info(`Activation: ${params.$activationId}`);
                     }
                     return params;
 
@@ -369,7 +369,7 @@ class Debugger {
     }
 
     async completeActivation(actionName, activationId, result, duration) {
-        console.log(`Completed activation ${activationId} in ${duration/1000.0} sec:`);
+        console.info(`Completed activation ${activationId} in ${duration/1000.0} sec`);
         if (this.argv.verbose) {
             console.log(result);
         }

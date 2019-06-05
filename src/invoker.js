@@ -177,10 +177,10 @@ class OpenWhiskInvoker {
 
     async logInfo() {
         if (this.sourcePath) {
-            console.log(`Sources    : ${this.sourcePath}`);
+            console.info(`Sources    : ${this.sourcePath}`);
         }
-        console.log(`Debug type : ${this.debugKind}`);
-        console.log(`Debug port : localhost:${this.debug.port}`)
+        console.info(`Debug type : ${this.debugKind}`);
+        console.info(`Debug port : localhost:${this.debug.port}`)
     }
 
     async init() {
