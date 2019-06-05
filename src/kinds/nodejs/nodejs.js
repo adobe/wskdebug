@@ -36,10 +36,15 @@ module.exports = {
     // return action for /init that mounts the sources specified by invoker.sourcePath
     mountAction: function(invoker) {
         // bridge that mounts local source path
-        let code = fs.readFileSync(`${__dirname}/mount.js`, {encoding: 'utf8'});
+
+        // is it a require() based action or a plain JS one?
+        const bridgeSource = invoker.action.exec.binary ? "mount-require.js" : "mount-plain.js";
+
+        let code = fs.readFileSync(`${__dirname}/${bridgeSource}`, {encoding: 'utf8'});
+
         code = code.replace("$$main$$",        invoker.main || "main");
-        code = code.replace("$$requirePath$$", `${CODE_MOUNT}/${invoker.sourceFile}`);
-        code = code.replace("$$moduleFile$$",  invoker.sourceFile);
+        code = code.replace("$$sourcePath$$", `${CODE_MOUNT}/${invoker.sourceFile}`);
+        code = code.replace("$$sourceFile$$",  invoker.sourceFile);
 
         return {
             binary: false,

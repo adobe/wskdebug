@@ -14,21 +14,21 @@
 
 // Variables will be replaced before the code is loaded
 
-// module path to actual action sources
-const path = "$$requirePath$$";
+// path to actual action sources
+const path = "$$sourcePath$$";
 // main function
 const mainFn = "$$main$$";
 // name of module file (for helpful errors)
-const moduleFile = "$$moduleFile$$";
+const sourceFile = "$$sourceFile$$";
 
 // load and validate on /init for quick feedback
 try {
     require(path);
 } catch (e) {
-    throw `Cannot load module '${moduleFile}': ${e}`;
+    throw `Cannot load module '${sourceFile}': ${e}`;
 }
 if (typeof require(path)[mainFn] !== "function") {
-    throw `'${mainFn}' is not a function in '${moduleFile}'. Specify the right function in wskdebug using --main.`;
+    throw `'${mainFn}' is not a function in '${sourceFile}'. Specify the right function in wskdebug using --main.`;
 }
 
 // eslint-disable-next-line no-unused-vars

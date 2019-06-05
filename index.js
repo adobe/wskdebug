@@ -25,11 +25,9 @@ require('manakin').global;
 function getSupportedKinds() {
     const kinds = [];
     const basePath = path.resolve(__dirname, "src/kinds");
-    // console.log("listing children of", basePath);
     fs.readdirSync(basePath).forEach(function(entry) {
         const p = path.resolve(basePath, entry);
         if (fs.statSync(p).isDirectory()) {
-            // console.log("-", entry);
             const kind = require(path.resolve(p, entry));
             kinds.push(`${entry}: ${kind.description}`);
         }
