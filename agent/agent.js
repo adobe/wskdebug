@@ -12,13 +12,11 @@
 
 'use strict';
 
-const openwhisk = require('openwhisk');
 const os = require("os");
 
 // shared across activations
 const activations = [];
 const completions = {};
-let debuggerConnected = false;
 
 function checkTimeout(deadline) {
     // stop 10 seconds before timeout, to have enough buffer
@@ -43,23 +41,15 @@ async function waitForActivation() {
     // blocking invocations only wait for 1 minute, regardless of the action timeout
     const oneMinuteDeadline = Date.now() + 60*1000;
 
-    // TODO: only allow a single debugger by registering with uuid?
-    debuggerConnected = true;
+    while (activations.length === 0) {
+        await sleep(100);
 
-    try {
-        while (activations.length === 0) {
-            await sleep(100);
-
-            checkTimeout(oneMinuteDeadline);
-        }
-
-        const activation = activations.shift();
-        console.log("activation id:", activation.$activationId);
-        return activation;
-
-    } finally {
-        debuggerConnected = false;
+        checkTimeout(oneMinuteDeadline);
     }
+
+    const activation = activations.shift();
+    console.log("activation id:", activation.$activationId);
+    return activation;
 }
 
 function complete(result) {
@@ -93,20 +83,10 @@ async function doMain(args) {
         console.log("completing activation", args.$activationId);
         return complete(args);
 
-    } else if (args.$suspend || debuggerConnected) {
+    } else {
         // normal activation: if debugger is waiting, make activation available to him
         console.log("activation, passing on to debugger");
         return waitForCompletion( newActivation(args) );
-
-    } else {
-        // normal activation: if no debugger is present, just pass on to original action
-        console.log("activation without debugger connected, executing normally");
-        return openwhisk().actions.invoke({
-            name: `${process.env.__OW_ACTION_NAME}_wskdebug_original`,
-            params: args,
-            blocking: true,
-            result: true
-        })
     }
 }
 
