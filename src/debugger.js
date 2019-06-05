@@ -57,7 +57,7 @@ class Debugger {
         await OpenWhiskInvoker.checkIfAvailable();
 
         const actionName = this.argv.action;
-        console.log(`Starting debugger for ${actionName}`);
+        console.log(`Starting debugger for /${this.wskProps.namespace}/${actionName}`);
 
         // get the action
         const { action, agentAlreadyInstalled } = await this.getAction(actionName);
@@ -79,9 +79,9 @@ class Debugger {
                 await this.installAgent(actionName, action);
             }
 
-            if (this.argv.run) {
-                console.log("Running:", this.argv.run);
-                spawnSync(this.argv.run, {shell: true, stdio: "inherit"});
+            if (this.argv.onStart) {
+                console.log("On start:", this.argv.onStart);
+                spawnSync(this.argv.onStart, {shell: true, stdio: "inherit"});
             }
             console.log();
             console.log(`Action     : ${actionName}`);
@@ -196,7 +196,7 @@ class Debugger {
         const backupName = this.getActionCopyName(actionName);
 
         if (this.argv.verbose) {
-            console.log(`Installing agent in OpenWhisk. Original action backed up at ${backupName}.`);
+            console.log(`Installing agent in OpenWhisk`);
         }
 
         // create copy
@@ -204,6 +204,10 @@ class Debugger {
             name: backupName,
             action: action
         });
+
+        if (this.argv.verbose) {
+            console.log(`Original action backed up at ${backupName}.`);
+        }
 
         // overwrite action with agent
         await this.wsk.actions.update({
@@ -229,6 +233,9 @@ class Debugger {
             }
         });
 
+        if (this.argv.verbose) {
+            console.log(`Agent installed.`);
+        }
         this.agentInstalled = true;
     }
 
@@ -362,12 +369,9 @@ class Debugger {
     }
 
     async completeActivation(actionName, activationId, result, duration) {
+        console.log(`Completed activation ${activationId} in ${duration/1000.0} sec:`);
         if (this.argv.verbose) {
-            console.log();
-            console.log(`Completed activation ${activationId} in ${duration/1000.0} sec:`);
             console.log(result);
-        } else {
-            console.log(`...completed in ${duration/1000.0} sec.`);
         }
 
         result.$activationId = activationId;
@@ -394,6 +398,27 @@ class Debugger {
     async startLiveReload() {
         const liveReloadServer = livereload.createServer();
         liveReloadServer.watch(this.argv.sourceDir);
+
+        if (this.argv.onReload) {
+            const reloadCmd = this.argv.onReload;
+
+            // overwrite function to get notified on changes
+            const refresh = liveReloadServer.refresh;
+            liveReloadServer.refresh = function(filepath) {
+                try {
+                    // call original function
+                    const result = refresh.call(this, filepath);
+
+                    console.log("On reload:", reloadCmd);
+                    spawnSync(reloadCmd, {shell: true, stdio: "inherit"});
+
+                    return result;
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+        }
+
         console.log("LiveReload enabled on", this.argv.sourceDir);
     }
 }

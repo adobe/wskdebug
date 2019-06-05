@@ -160,22 +160,23 @@ Action options:
   -i, --image  Docker image to use as action container
 
 LiveReload options:
-  -l, --live-reload  Enable LiveReload. [source-path] is required
+  -l, --live-reload  Enable LiveReload on changes to [source-path]
+  -r, --on-reload    Shell command to run upon live reload
 
 Debugging options:
-  -p, --port           Debug port exposed from action container that debugging
-                       clients connect to. Defaults to -P/--internal-port if set
-                       or standard debug port of the kind. Node.js arguments
-                       --inspect, --inspekt-brk and co. can be used too.
-  -P, --internal-port  Actual debug port inside the container. Must match the
-                       port that is opened by -C/--command. Defaults to standard
-                       debug port of the kind
-  -C, --command        Container command override that enables debugging
-  --docker-args        Additional docker run arguments for container.
-                       Must be quoted and start with space:
-                       'wskdebug --docker-args " -e key=var" myaction'
-  --agent-timeout      Debugging agent timeout (seconds). Default: 5 min
-  -R, --run            Shell command to run when debugger is up
+  -p, --port       Debug port exposed from action container that debugging
+                   clients connect to. Defaults to -P/--internal-port if set or
+                   standard debug port of the kind. Node.js arguments --inspect,
+                   --inspekt-brk and co. can be used too.
+  --internal-port  Actual debug port inside the container. Must match the port
+                   that is opened by -C/--command. Defaults to standard debug
+                   port of the kind
+  --command        Container command override that enables debugging
+  --docker-args    Additional docker run arguments for container.
+                   Must be quoted and start with space:
+                   'wskdebug --docker-args " -e key=var" myaction'
+  --agent-timeout  Debugging agent timeout (seconds). Default: 5 min
+  --on-start       Shell command to run when debugger is up
 
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result

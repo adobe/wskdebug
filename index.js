@@ -19,10 +19,8 @@ const Debugger = require("./src/debugger");
 const path = require("path");
 const fs = require("fs");
 
-const consoleError = console.error;
-console.error = (...args) => {
-    consoleError(...args.map(a => `\x1b[31m${a}\x1b[0m`) );
-}
+// colorful console.error() and co
+require('manakin').global;
 
 function getSupportedKinds() {
     const kinds = [];
@@ -99,7 +97,13 @@ yargs
             type: "boolean",
             implies: "source-path",
             group: "LiveReload options:",
-            describe: "Enable LiveReload. [source-path] is required"
+            describe: "Enable LiveReload on changes to [source-path]"
+        });
+        yargs.option("r", {
+            alias: "on-reload",
+            type: "string",
+            group: "LiveReload options:",
+            describe: "Shell command to run upon live reload"
         });
 
         // debugging options
@@ -109,14 +113,12 @@ yargs
             group: "Debugging options:",
             describe: "Debug port exposed from action container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the kind. Node.js arguments --inspect, --inspekt-brk and co. can be used too."
         });
-        yargs.option("P", {
-            alias: "internal-port",
+        yargs.option("internal-port", {
             type: "number",
             group: "Debugging options:",
             describe: "Actual debug port inside the container. Must match the port that is opened by -C/--command. Defaults to standard debug port of the kind"
         });
-        yargs.option("C", {
-            alias: "command",
+        yargs.option("command", {
             type: "string",
             group: "Debugging options:",
             describe: "Container command override that enables debugging"
@@ -131,8 +133,7 @@ yargs
             group: "Debugging options:",
             describe: "Debugging agent timeout (seconds). Default: 5 min"
         });
-        yargs.option("R", {
-            alias: "run",
+        yargs.option("on-start", {
             type: "string",
             group: "Debugging options:",
             describe: "Shell command to run when debugger is up"
@@ -157,6 +158,9 @@ yargs
         // pass hidden alias to port option
         if (argv.inspect) {
             argv.p = argv.port = argv.inspect;
+        }
+        if (argv.onReload) {
+            argv.l = argv.liveReload = true;
         }
 
         try {

@@ -11,6 +11,7 @@ TODO List
 * [x] extra docker args
 * [x] custom command to run when debugger is ready
 * [x] live reload
+* [x] live reload with custom command
 * [ ] support plain JS actions (no require)
 * [ ] support openwhisk without concurrency (agent-no-concurrency.js)
 * [ ] only allow a single debugger by registering with uuid (agent.js)
