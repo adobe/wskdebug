@@ -1,15 +1,21 @@
-wskdebug - Apache OpenWhisk debugger
-====================================
+wskdebug
+========
 
-Command line tool to debug OpenWhisk actions in your favorite IDE or debugger, including automatic code reloading and LiveReload for web actions. Requires a local [Docker](https://www.docker.com/products/docker-desktop) environment.
+_Debugger and live development tool for Apache OpenWhisk_
+
+Command line tool to debug OpenWhisk actions in your favorite IDE or debugger, including automatic code reloading, LiveReload for web actions and auto-invoking of actions on code changes for a super fast feedback loop during development. Requires a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
 **Note: This is a prerelease version. Currently under the Adobe internal @nui npm scope, but planning to open source. The next todos are tracked in [TODO.md](TODO.md).**
 
 ## About
 
-`wskdebug` supports debugging of an action by forwarding it from the OpenWhisk system to a local container on your desktop and executing it there. The local container will have debugging enabled with the necessary debug port open, depending on the specific language runtime. This works with any invocations, including web actions. The solution is based only on custom actions and does not require anything special in the OpenWhisk system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
+`wskdebug` supports debugging of an action by forwarding it from the OpenWhisk system to a local container on your desktop and executing it there. The local container or better the action/language runtime inside the container gets its debug mode enabled and respective debug port open, depending on the specific language runtime.
 
-One caveat: web actions or other blocking invocations time out after 1 minute in OpenWhisk. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation will not expect. However, there is no time limit on stepping through the code itself.
+Furthermore, the local container can mount the local source files and automatically reload them on every invocation. `wskdebug` can also listen for changes to the source files and trigger an automatic reload of a web action or direct invocation of the action or just any shell command, e.g. if you need to make more nuanced curl requests to trigger your API.
+
+The debugger works with all normal actions, including web actions. Sequences or compositions itself (not the component actions) are not supported. The solution is only based on custom actions and works with any OpenWhisk system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
+
+Caveat: Web actions or other blocking invocations time out after 1 minute in OpenWhisk. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation will not expect. However, there is no time limit on stepping through the code itself.
 
 Node.js runtimes are supported out of the box. For other languages, you need to specify `--port` (and/or `--internal-port`) and `--command` arguments, and possibly `--image`.
 
