@@ -181,14 +181,35 @@ class Debugger {
         return {action, agentAlreadyInstalled };
     }
 
-    async installAgent(actionName, action) {
-        let agentName = "agent";
-        const concurrency = await this.supportsConcurrency();
-        if (!concurrency) {
-            console.log("This OpenWhisk system does not seem to support action concurrency. Debugging will be a bit slower.");
-            agentName = "agent-no-concurrency";
+    async createHelperAction(actionName, file) {
+        await this.wsk.actions.update({
+            name: actionName,
+            action: {
+                exec: {
+                    kind: "nodejs:default",
+                    code: fs.readFileSync(file, {encoding: 'utf8'})
+                },
+                limits: {
+                    timeout: (this.argv.agentTimeout || 300) * 1000
+                },
+                annotations: [
+                    { key: "description", value: `wskdebug agent helper. temporarily installed.` }
+                ]
+            }
+        });
+    }
 
-            throw new Error("Non-concurrent agent not implemented yet.");
+    async installAgent(actionName, action) {
+        this.agentInstalled = true;
+
+        let agentName = "agent";
+        this.concurrency = await this.supportsConcurrency();
+        if (!this.concurrency) {
+            console.log("This OpenWhisk system does not seem to support action concurrency. Debugging will be a bit slower.");
+
+            await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${__dirname}/../agent/agent-helper-echo.js`)
+            await this.createHelperAction(`${actionName}_wskdebug_completed`, `${__dirname}/../agent/agent-helper-echo.js`)
+            agentName = "agent-no-concurrency";
         }
 
         const backupName = this.getActionCopyName(actionName);
@@ -212,10 +233,11 @@ class Debugger {
             name: actionName,
             action: {
                 exec: {
+                    kind: "nodejs:default",
                     // using the concurrency detection here is not quite correct
                     // but it works for now to separate between I/O Runtime and IT cloud openwhisk
-                    kind: concurrency ? "nodejs:default" : "blackbox",
-                    image: concurrency ? undefined : "openwhisk/action-nodejs-v8",
+                    // kind: this.concurrency ? "nodejs:default" : "blackbox",
+                    // image: this.concurrency ? undefined : "openwhisk/action-nodejs-v8",
                     code: fs.readFileSync(`${__dirname}/../agent/${agentName}.js`, {encoding: 'utf8'})
                 },
                 limits: {
@@ -234,7 +256,6 @@ class Debugger {
         if (this.argv.verbose) {
             console.log(`Agent installed.`);
         }
-        this.agentInstalled = true;
     }
 
     registerExitHandler(actionName) {
@@ -295,6 +316,11 @@ class Debugger {
 
                 await this.wsk.actions.delete(copy);
 
+                if (!this.concurrency) {
+                    await this.wsk.actions.delete(`${actionName}_wskdebug_invoked`);
+                    await this.wsk.actions.delete(`${actionName}_wskdebug_completed`);
+                }
+
             } catch (e) {
                 console.error("Error while restoring original action:", e);
             }
@@ -310,14 +336,40 @@ class Debugger {
                 process.stdout.write(".");
             }
             try {
-                // invoke - blocking for up to 1 minute
-                const activation = await this.wsk.actions.invoke({
-                    name: actionName,
-                    params: {
-                        $waitForActivation: true
-                    },
-                    blocking: true
-                });
+                let activation;
+                if (this.concurrency) {
+                    // invoke - blocking for up to 1 minute
+                    activation = await this.wsk.actions.invoke({
+                        name: actionName,
+                        params: {
+                            $waitForActivation: true
+                        },
+                        blocking: true
+                    });
+
+                } else {
+                    // poll
+                    let since = Date.now();
+
+                    while (true) {
+                        const nextSince = Date.now();
+                        const activations = await this.wsk.activations.list({
+                            name: `${actionName}_wskdebug_invoked`,
+                            since: since,
+                            docs: true // include results
+                        });
+                        since = nextSince;
+
+                        for (const a of activations) {
+                            if (a.response && a.response.result) {
+                                return a.response.result;
+                            }
+                        }
+
+                        // need to limit load on openwhisk (activation list)
+                        await sleep(1000);
+                    }
+                }
 
                 // check for successful response with a new activation
                 if (activation && activation.response) {
@@ -374,7 +426,7 @@ class Debugger {
 
         result.$activationId = activationId;
         await this.wsk.actions.invoke({
-            name: actionName,
+            name: this.concurrency ? actionName : `${actionName}_wskdebug_completed`,
             params: result,
             blocking: true
         });
