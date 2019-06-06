@@ -14,7 +14,7 @@ _Debugger and live development tool for Apache OpenWhisk_
 * auto-invoking of actions on code changes
 * or running any shell command such as a curl request on code changes
 
-for a fast feedback loop during development. 
+for a fast feedback loop during development.
 
 Requires [Node.js](https://nodejs.org) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
@@ -190,10 +190,10 @@ LiveReload options:
 
 Debugging options:
   -p, --port       Debug port exposed from container that debugging clients connect to.
-                   Defaults to -P/--internal-port if set or standard debug port of the
-                   kind. Node.js arguments --inspect and co. can be used too.     [number]
+                   Defaults to --internal-port if set or standard debug port of the kind.
+                   Node.js arguments --inspect and co. can be used too.           [number]
   --internal-port  Actual debug port inside the container. Must match port opened by
-                   -C/--command. Defaults to standard debug port of kind.         [number]
+                   --command. Defaults to standard debug port of kind.            [number]
   --command        Custom container command that enables debugging                [string]
   --docker-args    Additional docker run arguments for container. Must be quoted and start
                    with space: 'wskdebug --docker-args " -e key=var" myaction'    [string]

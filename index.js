@@ -124,12 +124,12 @@ yargs
             alias: "port",
             type: "number",
             group: "Debugging options:",
-            describe: "Debug port exposed from container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the kind. Node.js arguments --inspect and co. can be used too."
+            describe: "Debug port exposed from container that debugging clients connect to. Defaults to --internal-port if set or standard debug port of the kind. Node.js arguments --inspect and co. can be used too."
         });
         yargs.option("internal-port", {
             type: "number",
             group: "Debugging options:",
-            describe: "Actual debug port inside the container. Must match port opened by -C/--command. Defaults to standard debug port of kind."
+            describe: "Actual debug port inside the container. Must match port opened by --command. Defaults to standard debug port of kind."
         });
         yargs.option("command", {
             type: "string",
