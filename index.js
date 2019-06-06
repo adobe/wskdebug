@@ -111,7 +111,7 @@ yargs
         yargs.option("a", {
             type: "string",
             group: "LiveReload options:",
-            describe: "Name of custom action to invoke upon changes to [source-path].\nDefaults to <action>."
+            describe: "Name of custom action to invoke upon changes to [source-path].\nDefaults to <action> if -P is set."
         });
         yargs.option("r", {
             type: "string",

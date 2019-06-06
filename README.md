@@ -185,7 +185,7 @@ LiveReload options:
   -P         Invoke action with these parameters on changes to [source-path].
              Argument can be json string or name of json file.                    [string]
   -a         Name of custom action to invoke upon changes to [source-path].
-             Defaults to <action>.                                                [string]
+             Defaults to <action> if -P is set.                                   [string]
   -r         Shell command to run upon changes to [source-path]                   [string]
 
 Debugging options:
