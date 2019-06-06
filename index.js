@@ -44,16 +44,17 @@ yargs
     'Not enough non-option arguments: got %s, need at least %s': "Error: Missing argument <action> (%s/%s)"
 })
 .version(false)
+.wrap(90)
 .command(
     "* <action> [source-path]",
-    `Debug an OpenWhisk <action> by forwarding its activations to a local docker
-    container with debugging enabled and debug port exposed to the host.
+    `Debug an OpenWhisk <action> by forwarding its activations to a local docker container that
+    has debugging enabled and its debug port exposed to the host.
 
     If only <action> is specified, the deployed action code is debugged.
 
-    Specify [source-path] pointing to the local sources of the action to dynamically
-    mount them in the debug container. Sources will be automatically reloaded on
-    each new activation (might depend on the kind).
+    If [source-path] is set, it must point to the local action sources which will be mounted
+    into the debug container. Sources will be automatically reloaded on each new activation.
+    This feature depends on the kind.
 
     Supported kinds:
     - ${getSupportedKinds().join("\n")}
@@ -91,17 +92,31 @@ yargs
 
         // livereload
         yargs.option("l", {
-            alias: "live-reload",
             type: "boolean",
             implies: "source-path",
             group: "LiveReload options:",
-            describe: "Enable LiveReload on changes to [source-path]"
+            describe: "Enable browser LiveReload on [source-path]"
         });
-        yargs.option("r", {
-            alias: "on-reload",
+        yargs.option("lr-port", {
+            type: "number",
+            implies: "l",
+            group: "LiveReload options:",
+            describe: "Port for browser LiveReload (defaults to 35729)"
+        });
+        yargs.option("P", {
             type: "string",
             group: "LiveReload options:",
-            describe: "Shell command to run upon live reload"
+            describe: "Invoke action with these parameters on changes to [source-path].\nArgument can be json string or name of json file."
+        });
+        yargs.option("a", {
+            type: "string",
+            group: "LiveReload options:",
+            describe: "Name of custom action to invoke upon changes to [source-path].\nDefaults to <action>."
+        });
+        yargs.option("r", {
+            type: "string",
+            group: "LiveReload options:",
+            describe: "Shell command to run upon changes to [source-path]"
         });
 
         // debugging options
@@ -109,22 +124,22 @@ yargs
             alias: "port",
             type: "number",
             group: "Debugging options:",
-            describe: "Debug port exposed from action container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the kind. Node.js arguments --inspect, --inspekt-brk and co. can be used too."
+            describe: "Debug port exposed from container that debugging clients connect to. Defaults to -P/--internal-port if set or standard debug port of the kind. Node.js arguments --inspect and co. can be used too."
         });
         yargs.option("internal-port", {
             type: "number",
             group: "Debugging options:",
-            describe: "Actual debug port inside the container. Must match the port that is opened by -C/--command. Defaults to standard debug port of the kind"
+            describe: "Actual debug port inside the container. Must match port opened by -C/--command. Defaults to standard debug port of kind."
         });
         yargs.option("command", {
             type: "string",
             group: "Debugging options:",
-            describe: "Container command override that enables debugging"
+            describe: "Custom container command that enables debugging"
         });
         yargs.option("docker-args", {
             type: "string",
             group: "Debugging options:",
-            describe: "Additional docker run arguments for container.\nMust be quoted and start with space:\n'wskdebug --docker-args \" -e key=var\" myaction'"
+            describe: "Additional docker run arguments for container. Must be quoted and start with space: 'wskdebug --docker-args \" -e key=var\" myaction'"
         });
         yargs.option("agent-timeout", {
             type: "number",
@@ -153,13 +168,14 @@ yargs
         yargs.version();
     },
     async argv => {
-        // pass hidden alias to port option
-        if (argv.inspect) {
-            argv.p = argv.port = argv.inspect;
-        }
-        if (argv.onReload) {
-            argv.l = argv.liveReload = true;
-        }
+        // pass hidden node.js arg aliases to port option
+        argv.port = argv.p = argv.inspect;
+        // more readable internal argument names
+        argv.livereload = argv.l;
+        argv.livereloadPort = argv.lrPort;
+        argv.invokeParams = argv.P;
+        argv.invokeAction = argv.a;
+        argv.onChange = argv.r;
 
         try {
             await new Debugger(argv).run();
@@ -177,7 +193,7 @@ yargs
 .parse(process.argv.slice(2), {}, (_, __, output) => {
     if (output) {
         // Remove types (e.g. [string], [boolean]) from the output
-        output = output.replace(/\[\w+\]/g, '');
+        output = output.replace(/\[boolean]/g, '');
 
         // Show the modified output
         console.log(output);

@@ -68,10 +68,8 @@ class Debugger {
         this.registerExitHandler(actionName);
 
         try {
-            // start live reload
-            if (this.argv.liveReload && this.argv.sourceDir) {
-                await this.startLiveReload();
-            }
+            // start live reload (if requested)
+            await this.startLiveReload();
 
             // start container & agent
             await this.invoker.start();
@@ -396,30 +394,66 @@ class Debugger {
     }
 
     async startLiveReload() {
-        const liveReloadServer = livereload.createServer();
-        liveReloadServer.watch(this.argv.sourceDir);
+        if (this.argv.sourceDir && (this.argv.livereload || this.argv.onChange || this.argv.invokeParams)) {
 
-        if (this.argv.onReload) {
-            const reloadCmd = this.argv.onReload;
+            const liveReloadServer = livereload.createServer({
+                port: this.argv.livereloadPort,
+                noListen: !this.argv.livereload,
+                extraExts: ["json"]
+            });
+            liveReloadServer.watch(this.argv.sourceDir);
 
-            // overwrite function to get notified on changes
-            const refresh = liveReloadServer.refresh;
-            liveReloadServer.refresh = function(filepath) {
-                try {
-                    // call original function
-                    const result = refresh.call(this, filepath);
+            if (this.argv.onChange || this.argv.invokeParams || this.argv.invokeAction) {
+                // overwrite function to get notified on changes
+                const refresh = liveReloadServer.refresh;
+                const argv = this.argv;
+                const wsk = this.wsk;
+                liveReloadServer.refresh = function(filepath) {
+                    try {
+                        let result = [];
+                        // call original function if we are listening
+                        if (argv.livereload) {
+                            result = refresh.call(this, filepath);
+                        }
 
-                    console.log("On reload:", reloadCmd);
-                    spawnSync(reloadCmd, {shell: true, stdio: "inherit"});
+                        // run shell command
+                        if (argv.onChange) {
+                            console.info("=> Run:", argv.onChange);
+                            spawnSync(argv.onChange, {shell: true, stdio: "inherit"});
+                        }
 
-                    return result;
-                } catch (e) {
-                    console.error(e);
-                }
-            };
+                        // action invoke
+                        if (argv.invokeParams || argv.invokeAction) {
+                            let json = {};
+                            if (argv.invokeParams) {
+                                if (argv.invokeParams.trim().startsWith("{")) {
+                                    json = JSON.parse(argv.invokeParams);
+                                } else {
+                                    json = JSON.parse(fs.readFileSync(argv.invokeParams, {encoding: 'utf8'}));
+                                }
+                            }
+                            const action = argv.invokeAction || argv.action;
+                            wsk.actions.invoke({
+                                name: action,
+                                params: json
+                            }).then(response => {
+                                console.info(`=> Invoked action ${action} with params ${argv.invokeParams}: ${response.activationId}`);
+                            }).catch(err => {
+                                console.error("Error invoking action:", err);
+                            });
+                        }
+
+                        return result;
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+            }
+
+            if (this.argv.livereload) {
+                console.info(`LiveReload enabled for ${this.argv.sourceDir} on port ${liveReloadServer.config.port}`);
+            }
         }
-
-        console.log("LiveReload enabled on", this.argv.sourceDir);
     }
 }
 

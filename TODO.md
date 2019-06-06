@@ -14,6 +14,8 @@ TODO List
 * [x] live reload with custom command
 * [x] support plain JS actions (no require)
 * [ ] support openwhisk without concurrency (agent-no-concurrency.js)
+* [ ] support breakpoints in plain JS actions (wrap code with exports.main?)
+* [ ] fix delay at start where activations are not caught
 * [ ] only allow a single debugger by registering with uuid (agent.js)
 * [ ] if agent is installed, check if another debugger is running (invoke agent)
 * [ ] abortPendingActivations (debugger.js)

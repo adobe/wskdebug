@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "wskdebug sample webaction",
             "runtimeExecutable": "wskdebug",
-            "args": [ "wskdebug-examples/webaction", "${workspaceFolder}/webaction.js", "--live-reload" ],
+            "args": [ "wskdebug-examples/webaction", "${workspaceFolder}/webaction.js", "-l" ],
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "/code",
             "outputCapture": "std"

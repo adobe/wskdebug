@@ -35,7 +35,7 @@ Add the configuration below to your [launch.json](https://code.visualstudio.com/
             "request": "launch",
             "name": "wskdebug MYACTION",
             "runtimeExecutable": "wskdebug",
-            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js", "--live-reload" ],
+            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js", "-l" ],
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "/code",
             "outputCapture": "std"
@@ -137,46 +137,48 @@ wsk action delete myaction_wskdebug_original
 ```
 wskdebug <action> [source-path]
 
-Debug an OpenWhisk <action> by forwarding its activations to a local docker
-container with debugging enabled and debug port exposed to the host.
+Debug an OpenWhisk <action> by forwarding its activations to a local docker container that
+has debugging enabled and its debug port exposed to the host.
 
 If only <action> is specified, the deployed action code is debugged.
 
-Specify [source-path] pointing to the local sources of the action to dynamically
-mount them in the debug container. Sources will be automatically reloaded on
-each new activation (might depend on the kind).
+If [source-path] is set, it must point to the local action sources which will be mounted
+into the debug container. Sources will be automatically reloaded on each new activation.
+This feature depends on the kind.
 
 Supported kinds:
 - nodejs: Node.js V8 inspect debugger on port 9229. Supports source mount
 
 
 Arguments:
-  action       Name of action to debug
-  source-path  Path to local action sources, file or folder (optional)
+  action       Name of action to debug                                            [string]
+  source-path  Path to local action sources, file or folder (optional)            [string]
 
 Action options:
-  -m, --main   Name of action entry point
-  -k, --kind   Action kind override, needed for blackbox images
-  -i, --image  Docker image to use as action container
+  -m, --main   Name of action entry point                                         [string]
+  -k, --kind   Action kind override, needed for blackbox images                   [string]
+  -i, --image  Docker image to use as action container                            [string]
 
 LiveReload options:
-  -l, --live-reload  Enable LiveReload on changes to [source-path]
-  -r, --on-reload    Shell command to run upon live reload
+  -l         Enable browser LiveReload on [source-path]
+  --lr-port  Port for browser LiveReload (defaults to 35729)                      [number]
+  -P         Invoke action with these parameters on changes to [source-path].
+             Argument can be json string or name of json file.                    [string]
+  -a         Name of custom action to invoke upon changes to [source-path].
+             Defaults to <action>.                                                [string]
+  -r         Shell command to run upon changes to [source-path]                   [string]
 
 Debugging options:
-  -p, --port       Debug port exposed from action container that debugging
-                   clients connect to. Defaults to -P/--internal-port if set or
-                   standard debug port of the kind. Node.js arguments --inspect,
-                   --inspekt-brk and co. can be used too.
-  --internal-port  Actual debug port inside the container. Must match the port
-                   that is opened by -C/--command. Defaults to standard debug
-                   port of the kind
-  --command        Container command override that enables debugging
-  --docker-args    Additional docker run arguments for container.
-                   Must be quoted and start with space:
-                   'wskdebug --docker-args " -e key=var" myaction'
-  --agent-timeout  Debugging agent timeout (seconds). Default: 5 min
-  --on-start       Shell command to run when debugger is up
+  -p, --port       Debug port exposed from container that debugging clients connect to.
+                   Defaults to -P/--internal-port if set or standard debug port of the
+                   kind. Node.js arguments --inspect and co. can be used too.     [number]
+  --internal-port  Actual debug port inside the container. Must match port opened by
+                   -C/--command. Defaults to standard debug port of kind.         [number]
+  --command        Custom container command that enables debugging                [string]
+  --docker-args    Additional docker run arguments for container. Must be quoted and start
+                   with space: 'wskdebug --docker-args " -e key=var" myaction'    [string]
+  --agent-timeout  Debugging agent timeout (seconds). Default: 5 min              [number]
+  --on-start       Shell command to run when debugger is up                       [string]
 
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result
