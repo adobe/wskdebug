@@ -13,7 +13,6 @@
 'use strict';
 
 const openwhisk = require('openwhisk');
-const os = require("os");
 
 function outOfTime(deadline) {
     // stop 10 seconds before timeout, to have enough buffer
@@ -95,60 +94,12 @@ async function waitForCompletion(activationId) {
     );
 }
 
-async function waitForActivation() {
-    // blocking invocations only wait for 1 minute, regardless of the action timeout
-    const oneMinuteDeadline = Date.now() + 60*1000;
-    return pollActivations(
-        `${actionName()}_wskdebug_invoked`,
-        a => {
-            // take any activation
-            if (a.response && a.response.result) {
-                return a.response.result;
-            }
-        },
-        () => {
-            if (outOfTime(oneMinuteDeadline)) {
-                const e = new Error(`No activation within timeout. Please retry.`);
-                e.code = 42;
-                throw e;
-            }
-        }
-    );
-}
-
-async function complete(result) {
-    await openwhisk().actions.invoke({
-        name: `${actionName()}_wskdebug_completed`,
-        params: result
-    });
-
-    return {
-        message: `completed activation ${result.$activationId}`
-    };
-}
-
 async function doMain(args) {
-    console.log("hostname:", os.hostname());
+    // normal activation: if debugger is waiting, make activation available to him
+    console.log("activation, passing on to debugger");
 
-    if (args.$waitForActivation) {
-        // debugger connects and waits for new activations
-        console.log("debugger connected, waiting for activation");
-
-        return waitForActivation();
-
-    } else if (args.$activationId) {
-        // debugger pushes result of completed activation
-        console.log("completing activation", args.$activationId);
-
-        return complete(args);
-
-    } else {
-        // normal activation: if debugger is waiting, make activation available to him
-        console.log("activation, passing on to debugger");
-
-        const id = await newActivation(args);
-        return waitForCompletion( id );
-    }
+    const id = await newActivation(args);
+    return waitForCompletion( id );
 }
 
 // OpenWhisk does not like raw exceptions, the error object should be the string message only
