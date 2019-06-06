@@ -16,7 +16,4 @@ TODO List
 * [x] support openwhisk without concurrency (agent-no-concurrency.js)
 * [x] support breakpoints in plain JS actions using @sourceURL
 * [ ] fix delay at start where activations are not caught
-* [ ] only allow a single debugger by registering with uuid (agent.js)
-* [ ] if agent is installed, check if another debugger is running (invoke agent)
-* [ ] abortPendingActivations (debugger.js)
 * [ ] opensource - submission form + add license, code of conduct etc.

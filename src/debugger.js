@@ -275,7 +275,6 @@ class Debugger {
 
     async onExit(actionName) {
         try {
-            await this.abortPendingActivations(actionName);
             await this.restoreAction(actionName);
             await this.invoker.stop();
 
@@ -291,10 +290,6 @@ class Debugger {
                 console.error("Error while terminating:", e.message);
             }
         }
-    }
-
-    async abortPendingActivations(/*actionName*/) {
-        // TODO: tell agent to abort, new command $abortActivations
     }
 
     async restoreAction(actionName) {
