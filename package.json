@@ -1,6 +1,6 @@
 {
     "name": "@nui/wskdebug",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Apache OpenWhisk debugger",
     "main": "index.js",
     "bin": {
