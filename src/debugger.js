@@ -280,10 +280,6 @@ class Debugger {
         // ensure we remove the agent when this app gets terminated
         ['SIGINT', 'SIGTERM'].forEach(signal => {
             process.on(signal, async () => {
-                console.log();
-                console.log();
-                process.stdout.write("Shutting down...");
-
                 await this.onExit(actionName);
 
                 process.exit();
@@ -292,6 +288,13 @@ class Debugger {
     }
 
     async onExit(actionName) {
+        // only log this if we started properly
+        if (this.ready) {
+            console.log();
+            console.log();
+            process.stdout.write("Shutting down...");
+        }
+
         try {
             await this.restoreAction(actionName);
             await this.invoker.stop();
