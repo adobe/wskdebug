@@ -14,6 +14,8 @@
 
 const openwhisk = require('openwhisk');
 
+const activationListFilterOnlyBasename = false;
+
 function outOfTime(deadline) {
     // stop 10 seconds before timeout, to have enough buffer
     return (Date.now() >= ((deadline || process.env.__OW_DEADLINE) - 10*1000));
@@ -46,20 +48,22 @@ async function newActivation(args) {
 async function pollActivations(actionName, onActivation, onLoop) {
     const wsk = openwhisk();
 
-    let since = Date.now();
+    const since = Date.now();
 
     while (true) {
 
-        console.log("polling for activations since", since);
-        const nextSince = Date.now();
+        let name = actionName;
+        if (activationListFilterOnlyBasename) {
+            if (actionName.includes("/")) {
+                name = actionName.substring(actionName.lastIndexOf("/") + 1);
+            }
+        }
+
         const activations = await wsk.activations.list({
-            name: actionName,
+            name: name,
             since: since,
             docs: true // include results
         });
-        since = nextSince;
-
-        console.dir(activations, { depth: null });
 
         for (const a of activations) {
             const result = onActivation(a);

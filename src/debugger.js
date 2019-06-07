@@ -182,11 +182,14 @@ class Debugger {
     }
 
     async createHelperAction(actionName, file) {
+        const nodejs8 = await this.openwhiskSupports("nodejs8");
+
         await this.wsk.actions.update({
             name: actionName,
             action: {
                 exec: {
-                    kind: "nodejs:default",
+                    kind: nodejs8 ? "nodejs:default" : "blackbox",
+                    image: nodejs8 ? undefined : "openwhisk/action-nodejs-v8",
                     code: fs.readFileSync(file, {encoding: 'utf8'})
                 },
                 limits: {
@@ -202,14 +205,27 @@ class Debugger {
     async installAgent(actionName, action) {
         this.agentInstalled = true;
 
-        let agentName = "agent";
-        this.concurrency = await this.supportsConcurrency();
-        if (!this.concurrency) {
+        const agentDir = `${__dirname}/../agent`;
+
+        // choose the right agent implementation
+        let code;
+        this.concurrency = await this.openwhiskSupports("concurrency");
+        if (this.concurrency) {
+            // normal fast agent using concurrent node.js actions
+            code = fs.readFileSync(`${agentDir}/agent.js`, {encoding: 'utf8'});
+
+        } else {
             console.log("This OpenWhisk system does not seem to support action concurrency. Debugging will be a bit slower.");
 
-            await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${__dirname}/../agent/agent-helper-echo.js`)
-            await this.createHelperAction(`${actionName}_wskdebug_completed`, `${__dirname}/../agent/agent-helper-echo.js`)
-            agentName = "agent-no-concurrency";
+            // this needs 2 helper actions in addition to the agent in place of the action
+            await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${agentDir}/agent-helper-echo.js`)
+            await this.createHelperAction(`${actionName}_wskdebug_completed`, `${agentDir}/agent-helper-echo.js`)
+
+            code = fs.readFileSync(`${agentDir}/agent-no-concurrency.js`, {encoding: 'utf8'});
+            // rewrite the code to pass config (we want to avoid fiddling with default params of the action)
+            if (await this.openwhiskSupports("activationListFilterOnlyBasename")) {
+                code = code.replace("const activationListFilterOnlyBasename = false;", "const activationListFilterOnlyBasename = true;");
+            }
         }
 
         const backupName = this.getActionCopyName(actionName);
@@ -228,17 +244,17 @@ class Debugger {
             console.log(`Original action backed up at ${backupName}.`);
         }
 
+        // this is to support older openwhisks for which nodejs:default is less than version 8
+        const nodejs8 = await this.openwhiskSupports("nodejs8");
+
         // overwrite action with agent
         await this.wsk.actions.update({
             name: actionName,
             action: {
                 exec: {
-                    kind: "nodejs:default",
-                    // using the concurrency detection here is not quite correct
-                    // but it works for now to separate between I/O Runtime and IT cloud openwhisk
-                    // kind: this.concurrency ? "nodejs:default" : "blackbox",
-                    // image: this.concurrency ? undefined : "openwhisk/action-nodejs-v8",
-                    code: fs.readFileSync(`${__dirname}/../agent/${agentName}.js`, {encoding: 'utf8'})
+                    kind: nodejs8 ? "nodejs:default" : "blackbox",
+                    image: nodejs8 ? undefined : "openwhisk/action-nodejs-v8",
+                    code: code
                 },
                 limits: {
                     timeout: (this.argv.agentTimeout || 300) * 1000,
@@ -323,6 +339,8 @@ class Debugger {
     }
 
     async waitForActivations(actionName) {
+        this.activationsSeen = this.activationsSeen || {};
+
         // secondary loop to get next activation
         // the $waitForActivation agent activation will block, but only until
         // it times out, hence we need to retry when it fails
@@ -343,21 +361,33 @@ class Debugger {
                     });
 
                 } else {
-                    // poll
-                    let since = Date.now();
+                    // poll for the newest activation
+                    const since = Date.now();
+
+                    // older openwhisk only allows the name of an action when filtering activations
+                    // newer openwhisk versions want package/name
+                    let name = actionName;
+                    if (await this.openwhiskSupports("activationListFilterOnlyBasename")) {
+                        if (actionName.includes("/")) {
+                            name = actionName.substring(actionName.lastIndexOf("/") + 1);
+                        }
+                    }
 
                     while (true) {
-                        const nextSince = Date.now();
+                        process.stdout.write(".");
+
                         const activations = await this.wsk.activations.list({
-                            name: `${actionName}_wskdebug_invoked`,
+                            name: `${name}_wskdebug_invoked`,
                             since: since,
+                            limit: 1, // get the most recent one only
                             docs: true // include results
                         });
-                        since = nextSince;
 
-                        for (const a of activations) {
-                            if (a.response && a.response.result) {
-                                return a.response.result;
+                        if (activations && activations.length >= 1) {
+                            const a = activations[0];
+                            if (a.response && a.response.result && !this.activationsSeen[a.activationId]) {
+                                activation = a;
+                                break;
                             }
                         }
 
@@ -369,6 +399,10 @@ class Debugger {
                 // check for successful response with a new activation
                 if (activation && activation.response) {
                     const params = activation.response.result;
+
+                    // mark this as seen so we don't reinvoke it
+                    this.activationsSeen[activation.activationId] = true;
+
                     if (this.argv.verbose) {
                         console.log();
                         console.info(`Activation: ${params.$activationId}`);
@@ -427,16 +461,47 @@ class Debugger {
         });
     }
 
-    async supportsConcurrency() {
-        // check swagger api docs to see if concurrency is supported
-        try {
-            const swagger = await this.wsk.actions.client.request("GET", "/api/v1/api-docs");
-
-            if (swagger && swagger.definitions && swagger.definitions.ActionLimits && swagger.definitions.ActionLimits.properties) {
-                return swagger.definitions.ActionLimits.properties.concurrency;
+    async getOpenWhiskVersion() {
+        if (this.openwhiskVersion === undefined) {
+            try {
+                const json = await this.wsk.actions.client.request("GET", "/api/v1");
+                if (json && typeof json.build === "string") {
+                    this.openwhiskVersion = json.build;
+                } else {
+                    this.openwhiskVersion = null;
+                }
+            } catch (e) {
+                console.warn("Could not retrieve OpenWhisk version:", e.message);
+                this.openwhiskVersion = null;
             }
-        } catch (e) {
-            return false;
+        }
+        return this.openwhiskVersion;
+    }
+
+    async openwhiskSupports(feature) {
+        const FEATURES = {
+            // guesstimated
+            activationListFilterOnlyBasename: v => v.startsWith("2018") || v.startsWith("2017"),
+            // hack
+            nodejs8: v => !v.startsWith("2018") && !v.startsWith("2017"),
+            concurrency: async (_, wsk) => {
+                // check swagger api docs instead of version to see if concurrency is supported
+                try {
+                    const swagger = await wsk.actions.client.request("GET", "/api/v1/api-docs");
+
+                    if (swagger && swagger.definitions && swagger.definitions.ActionLimits && swagger.definitions.ActionLimits.properties) {
+                        return swagger.definitions.ActionLimits.properties.concurrency;
+                    }
+                } catch (e) {
+                    return false;
+                }
+            }
+        };
+        const checker = FEATURES[feature];
+        if (checker) {
+            return checker(await this.getOpenWhiskVersion(), this.wsk);
+        } else {
+            throw new Error("Unknown feature " + feature);
         }
     }
 
