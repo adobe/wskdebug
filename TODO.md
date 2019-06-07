@@ -16,7 +16,7 @@ TODO List
 * [x] support openwhisk without concurrency (agent-no-concurrency.js)
 * [x] support breakpoints in plain JS actions using @sourceURL
 * [x] make it work with older openwhisk on IT cloud
-* [ ] bug: only specifying action arg fails with The "path" argument must be one of type string, Buffer, or URL. Received type undefined
+* [x] bug: only specifying action arg fails with The "path" argument must be one of type string, Buffer, or URL. Received type undefined
 * [ ] bug: specifying . as source-path gives EISDIR: illegal operation on a directory, read
 * [ ] fix delay at start where activations are not caught
 * [ ] opensource - submission form + add license, code of conduct etc.

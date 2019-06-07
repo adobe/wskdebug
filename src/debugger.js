@@ -43,14 +43,16 @@ class Debugger {
         this.wsk = openwhisk(this.wskProps);
 
         const srcPath = this.argv.sourcePath;
-        if (fs.lstatSync(srcPath).isFile()) {
-            this.argv.sourceDir = path.dirname(srcPath);
-            this.argv.sourceFile = path.basename(srcPath);
-        } else {
-            this.argv.sourceDir = srcPath;
-            this.argv.sourceFile = "";
+        if (srcPath) {
+            if (fs.lstatSync(srcPath).isFile()) {
+                this.argv.sourceDir = path.dirname(srcPath);
+                this.argv.sourceFile = path.basename(srcPath);
+            } else {
+                this.argv.sourceDir = srcPath;
+                this.argv.sourceFile = "";
+            }
         }
-}
+    }
 
     async run() {
         // quick fail for missing requirements such as docker not running
