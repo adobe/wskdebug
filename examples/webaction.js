@@ -33,7 +33,7 @@ function main({name}) {
                 <h3>${msg}</h3>
                 <form>
                 <input name="name" value="${name}"/>
-                <input type="submit" />
+                <input type="submit" value="Send" />
                 </form>
             </body>
         </html>`
