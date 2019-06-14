@@ -251,6 +251,11 @@ Options:
 
 ## Troubleshooting
 
+### No invocations visible in wskdebug
+
+* Is `wskdebug` working against the correct namespace? You can see that in the "Starting debugger for ..." output at the very start. If you tend to use `WSK_CONFIG_FILE` in your shell, please be aware that IDEs starting `wskdebug` will use `~/.wskprops` unless you set the environment variable for the `wskdebug` invocation in the IDE.
+* Wait a bit and try again. Restart (CTRL+C, then start `wskdebug` again), wait a bit and try again. Catching the invocations is not 100% perfect.
+
 ### Port is already allocated
 
 You can only run one `wskdebug` aka one action for the same runtime (debug port) at a time.
