@@ -1,6 +1,6 @@
 <!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
 [![npm version](https://img.shields.io/badge/%40nui%2Fwskdebug-1.0.0-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/wskdebug/-/@nui/wskdebug-1.0.0.tgz)
-_Currently under the Adobe internal @nui npm scope, but planning to open source_
+_Currently under the Adobe internal @nui npm scope, but [planning to open source](https://git.corp.adobe.com/OpenSourceAdvisoryBoard/opensource_submission_process/issues/434)_
 
 
 wskdebug
