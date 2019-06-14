@@ -8,6 +8,10 @@ wskdebug
 
 _Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.apache.org)_
 
+![screen cast showing debugging of a web action using wskdebug](wskdebug.gif)
+
+_This screen cast shows live development of a web action using `wskdebug`. On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result inthe browser: "Hello, Alex!"._
+
 ### Table of contents
 
   * [What it does](#what-it-does)
