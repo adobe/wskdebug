@@ -47,9 +47,33 @@ The debugger works with all normal actions, including web actions. Sequences or 
 
 ## Installation
 
+`wskdebug` requires [Node.js](https://nodejs.org) (version 10+), `npm` and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
+
+To install:
+
+1. Download [wskdebug-1.0.0.tgz](https://git.corp.adobe.com/nui/wskdebug/releases/download/v1.0.0/wskdebug-1.0.0.tgz) (or pick latest version from [releases](https://git.corp.adobe.com/nui/wskdebug/releases))
+2. Run
+   ```
+   npm install -g wskdebug-1.0.0.tgz
+   ```
+
+### Installation via artifactory
+
+If you don't mind logging into Adobe's internal Artifactory, you can install it this way, makes it a bit easier to get future updates:
+
 ```
+# enter your Adobe LDAP credentials and Adobe email when asked
+npm login --scope=@nui --registry=https://artifactory.corp.adobe.com:443/artifactory/api/npm/npm-nui-release-local/
+
 npm install -g @nui/wskdebug
 ```
+
+### Uninstall
+
+```
+npm uninstall -g @nui/wskdebug
+```
+
 
 ## Licensing
 
