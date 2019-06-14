@@ -1,5 +1,7 @@
 <!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
 [![npm version](https://img.shields.io/badge/%40nui%2Fwskdebug-0.0.3-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/wskdebug/-/@nui/wskdebug-0.0.3.tgz)
+**Currently under the Adobe internal @nui npm scope, but planning to open source.**
+
 
 wskdebug
 ========
@@ -19,8 +21,6 @@ Requires [Node.js](https://nodejs.org) (version 10+) and a local [Docker](https:
 Currently, only Node.js runtimes are supported out of the box. For others, basic debugging can usually be [configured on the command line](#other-action-kinds), while automatic code reloading needs an [extension in `wskdebug`](#extending-wskdebug-for-other-kinds).
 
 _Please note: Web actions or other blocking invocations time out after **1 minute in OpenWhisk**. This limit cannot be configured. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation do not expect. However, there is no time limit on stepping through the code itself if you do not care about the result of the action being handled synchronously._
-
-**Note: Currently under the Adobe internal @nui npm scope, but planning to open source.**
 
 ## Table of contents
 
