@@ -1,6 +1,6 @@
 <!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
 [![npm version](https://img.shields.io/badge/%40nui%2Fwskdebug-0.0.3-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/wskdebug/-/@nui/wskdebug-0.0.3.tgz)
-**Currently under the Adobe internal @nui npm scope, but planning to open source.**
+_Currently under the Adobe internal @nui npm scope, but planning to open source_
 
 
 wskdebug
@@ -8,7 +8,18 @@ wskdebug
 
 _Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.apache.org)_
 
-`wskdebug` is a command line tool to **develop and debug** [OpenWhisk actions](https://openwhisk.apache.org/documentation.html#programming-model-actions) in your favorite IDE or debugger with a **fast feedback loop**. It features:
+### Table of contents
+
+  * [What it does](#what-it-does)
+  * [How it works](#how-it-works)
+  * [Installation](#installation)
+  * [Usage](#usage)
+  * [Troubleshooting](#troubleshooting)
+  * [Development](#development)
+
+## What it does
+
+_wskdebug_ is a command line tool to **develop and debug** [OpenWhisk actions](https://openwhisk.apache.org/documentation.html#programming-model-actions) in your favorite IDE or debugger with a **fast feedback loop**. It features:
 
 * full debugging of actions of the respective language runtime
 * automatic code reloading
@@ -18,17 +29,13 @@ _Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.ap
 
 Requires [Node.js](https://nodejs.org) (version 10+) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
-Currently, only Node.js runtimes are supported out of the box. For others, basic debugging can usually be [configured on the command line](#other-action-kinds), while automatic code reloading needs an [extension in `wskdebug`](#extending-wskdebug-for-other-kinds).
+Currently, [Node.js actions](https://openwhisk.apache.org/documentation.html#nodejs) are supported out of the box. For others, basic debugging can be [configured on the command line](#unsupported-action-kinds), while automatic code reloading needs an [extension in `wskdebug`](#extending-wskdebug-for-other-kinds).
 
-_Please note: Web actions or other blocking invocations time out after **1 minute in OpenWhisk**. This limit cannot be configured. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation do not expect. However, there is no time limit on stepping through the code itself if you do not care about the result of the action being handled synchronously._
+### Note on timeouts
 
-## Table of contents
+Web actions or other blocking invocations time out after **1 minute in OpenWhisk**. This limit cannot be configured. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation do not expect. 
 
-  * [How it works](#how-it-works)
-  * [Installation](#installation)
-  * [Usage](#usage)
-  * [Troubleshooting](#troubleshooting)
-  * [Development](#development)
+However, there is no time limit on stepping through the code itself if you do not care about the result of the action being handled synchronously.
 
 ## How it works
 
@@ -53,6 +60,8 @@ The action to debug (e.g. `myaction`) must already be deployed.
 + [Node.js: Plain usage](#nodejs-plain-usage)
 + [Node.js: Chrome DevTools](#nodejs-chrome-devtools)
 + [Node.js: node-inspect command line](#nodejs-node-inspect-command-line)
++ [Unsupported action kinds](#unsupported-action-kinds)
++ [Live reloading](#live-reloading)
 + [Help output](#help-output)
 
 ### Node.js: Visual Studio Code
@@ -76,15 +85,17 @@ Add the configuration below to your [launch.json](https://code.visualstudio.com/
 
 Stop the debugger in VS Code to end the debugging session and `wskdebug`.
 
+This snippets enables browser LiveReloading using `-l`. For other reloading options, see [live reloading](#live-reloading).
+
 For troubleshooting, you can run the debugger in verbose mode by adding `"-v"` to the `args` array.
 
 ### Node.js: Multiple actions
 
 Each `wskdebug` process can debug and live reload exactly a single action. To debug multiple actions, run `wskdebug` for each. If all of them are using the same kind/language, where the default debug port is the same, different ports need to be used. 
 
-This is automatic if you use the VS code approach above using `launch`, because VS Code will automatically pick an unused debug port (and pass it as `--inspect=port` param to `wskdebug` as if it were `node`, and `wskdebug` understands this as alias for its `--port` argument).
+This is automatic if you have a separate VS code window for each action and use the VS code approach above using `launch`. With `launch`, VS Code will automatically pick an unused debug port and pass it as `--inspect=port` param to `wskdebug` as if it were `node`, and `wskdebug` understands this as alias for its `--port` argument.
 
-Otherwise you have to 
+Otherwise you have to make sure to pass a different `--port` to each `wskdebug`. Similarly, if you use browser live reloading for multiple actions, you must specify different ports for that uing `--lr-port` on each instance.
 
 ### Node.js: Plain usage
 
@@ -148,6 +159,13 @@ Once you found a working configuration, feel encouraged to open a pull request t
 
 For automatic code reloading for other languages, `wskdebug` needs to be [extended](#extending-wskdebug-for-other-kinds).
 
+### Live reloading
+
+There are 3 different live reload mechanism possible that will trigger something when the `<source-path>` is modified:
+
+* Browser `LiveReload` using `-l`: works with [LiveReload](http://livereload.com) browser extensions (though we noticed only Chrome worked reliably) that will automatically reload the web page. Great for web actions that render HTML to browsers.
+* Action invocation using `-P` and `-a`: specify `-P` pointing to a json file with the invocation parameters and the debugged action will be automatically invoked with these parameters. This will also automatically invoke if that json file is modified. If you need to trigger a different action (because there is chain of actions before the one you are debugging), define it using `-a`.
+* Arbitrary shell command using `-r`: this can be used to invoke web APIs implemented by web actions using `curl`, or any scenario where something needs to be triggered so that the debugged action gets activated downstream.
 
 ### Help output
 
