@@ -4,9 +4,9 @@
 wskdebug
 ========
 
-_Debugger and live development tool for Apache OpenWhisk_
+_Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.apache.org)_
 
-`wskdebug` is a command line tool to develop and debug OpenWhisk actions in your favorite IDE or debugger with a fast feedback loop. It features:
+`wskdebug` is a command line tool to **develop and debug** [OpenWhisk actions](https://openwhisk.apache.org/documentation.html#programming-model-actions) in your favorite IDE or debugger with a **fast feedback loop**. It features:
 
 * full debugging of actions of the respective language runtime
 * automatic code reloading
@@ -14,7 +14,7 @@ _Debugger and live development tool for Apache OpenWhisk_
 * auto-invoking of actions on code changes
 * or running any shell command such as a curl request on code changes
 
-for a fast feedback loop during development. Requires [Node.js](https://nodejs.org) (version 10+) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
+Requires [Node.js](https://nodejs.org) (version 10+) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
 Currently, only Node.js runtimes are supported out of the box. For others, basic debugging can usually be [configured on the command line](#other-action-kinds), while automatic code reloading needs an [extension in `wskdebug`](#extending-wskdebug-for-other-kinds).
 
