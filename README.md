@@ -6,7 +6,9 @@ wskdebug
 
 _Debugger and live development tool for Apache OpenWhisk_
 
-`wskdebug` is a command line tool to debug and faster develop OpenWhisk actions in your favorite IDE or debugger. Supports:
+`wskdebug` is a command line tool to debug and faster develop OpenWhisk actions in your favorite IDE or debugger.
+
+Features:
 
 * full debugging of actions of the respective language runtime
 * automatic code reloading
@@ -14,16 +16,21 @@ _Debugger and live development tool for Apache OpenWhisk_
 * auto-invoking of actions on code changes
 * or running any shell command such as a curl request on code changes
 
-for a fast feedback loop during development.
+for a fast feedback loop during development. Requires [Node.js](https://nodejs.org) (version 10+) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
-Requires [Node.js](https://nodejs.org) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
+Currently, only Node.js runtimes are supported out of the box. For others, basic debugging can usually be [configured on the command line](#other-action-kinds), while automatic code reloading needs an [extension in `wskdebug`](#extending-wskdebug-for-other-kinds).
 
-Currently, only Node.js runtimes are supported out of the box. To enable debugging for other languages, you can specify `--port` (and/or `--internal-port`) and `--command` arguments, and possibly `--image`. For automatic code reloading for other languages, `wskdebug` needs to be extended to [support these kinds](https://git.corp.adobe.com/nui/wskdebug/tree/master/src/kinds).
-
-Please note: Web actions or other blocking invocations time out after **1 minute in OpenWhisk**. This limit cannot be configured. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation do not expect. However, there is no time limit on stepping through the code itself if you do not care about the result of the action being handled synchronously.
-
+_Please note: Web actions or other blocking invocations time out after **1 minute in OpenWhisk**. This limit cannot be configured. This means that if the debugging session (stepping through code) takes longer than 1 minute, any web action will return an error and any blocking invocations will just get the activation id, which most callers of a blocking invocation do not expect. However, there is no time limit on stepping through the code itself if you do not care about the result of the action being handled synchronously._
 
 **Note: Currently under the Adobe internal @nui npm scope, but planning to open source.**
+
+## Table of contents
+
+  * [How it works](#how-it-works)
+  * [Installation](#installation)
+  * [Usage](#usage)
+  * [Troubleshooting](#troubleshooting)
+  * [Development](#development)
 
 ## How it works
 
@@ -39,12 +46,18 @@ The debugger works with all normal actions, including web actions. Sequences or 
 npm install -g @nui/wskdebug
 ```
 
-
 ## Usage
 
 The action to debug (e.g. `myaction`) must already be deployed.
 
-### Visual Studio Code - Node.js
++ [Node.js: Visual Studio Code](#nodejs-visual-studio-code)
++ [Node.js: Visual Studio Code - Multiple actions](#nodejs-visual-studio-code-multiple-actions)
++ [Node.js: Plain usage](#nodejs-plain-usage)
++ [Node.js: Chrome DevTools](#nodejs-chrome-devtools)
++ [Node.js: node-inspect command line](#nodejs-node-inspect-command-line)
++ [Help output](#help-output)
+
+### Node.js: Visual Studio Code
 
 Add the configuration below to your [launch.json](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `MYACTION` with the name of your action and `ACTION.js` with the source file containing the action. When you run this, it will start wskdebug and should automatically connect the debugger.
 
@@ -67,7 +80,16 @@ Stop the debugger in VS Code to end the debugging session and `wskdebug`.
 
 For troubleshooting, you can run the debugger in verbose mode by adding `"-v"` to the `args` array.
 
-### Plain usage
+### Node.js: Multiple actions
+
+Each `wskdebug` process can debug and live reload exactly a single action. To debug multiple actions, run `wskdebug` for each. If all of them are using the same kind/language, where the default debug port is the same, different ports need to be used. 
+
+This is automatic if you use the VS code approach above using `launch`, because VS Code will automatically pick an unused debug port (and pass it as `--inspect=port` param to `wskdebug` as if it were `node`, and `wskdebug` understands this as alias for its `--port` argument).
+
+Otherwise you have to 
+
+### Node.js: Plain usage
+
 Run `wskdebug` and specify the action
 
 ```
@@ -87,7 +109,9 @@ You can then use a debugger to connect to the debug port, in this case `localhos
 
 When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and remove the forwarding agent and restore the original action.
 
-#### Node.js: Chrome DevTools
+### Node.js: Chrome DevTools
+
+Run [Node.js: Plain usage](#nodejs-plain-usage) and then:
 
 1. Open Chrome
 2. Enter `about:inspect`
@@ -103,56 +127,31 @@ When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and re
 
 See also this [article](https://medium.com/@paul_irish/debugging-node-js-nightlies-with-chrome-devtools-7c4a1b95ae27).
 
-#### Node.js: node-inspect command line
+### Node.js: node-inspect command line
+
+Run [Node.js: Plain usage](#nodejs-plain-usage) and then:
+
 Use the command line Node debugger [node-inspect](https://github.com/nodejs/node-inspect):
 
 ```
 node-inspect 127.0.0.1:9229
 ```
 
+### Unsupported action kinds
 
-## Troubleshooting
+To enable debugging for kinds/languages not supported out of the box, you can specify these cli arguments manually:
 
-### Port is already allocated
+* `--internal-port` the actual language debug port inside the container
+* `--command` override the docker run command for the image to e.g. pass a debug flag to the language enviroment
+* `--port` (optional) the port as it will be exposed from the container to the host, i.e. to what clients will connect to. defaults to `--internal-port` if set
+* `--image` (optional) control the docker image used as runtime for the action
 
-You can only run one `wskdebug` aka one action for the same runtime (debug port) at a time.
+Once you found a working configuration, feel encouraged to open a pull request to [add support for this out of the box](#default-debug-ports-and-commands)!
 
-If you get an error like this:
+For automatic code reloading for other languages, `wskdebug` needs to be [extended](#extending-wskdebug-for-other-kinds).
 
-```
-docker: Error response from daemon: driver failed programming external connectivity on endpoint wskdebug-webaction-1559204115390 (3919892fab2981bf9feab0b6ba3fc256676de59d1a6ab67519295757313e8ac3): Bind for 0.0.0.0:9229 failed: port is already allocated.
-```
 
-it means that there is another `wskdebug` already running or that its container was left over, blocking the debug port.
-
-Either quit the other `wskdebug` or if its an unexpected left over, terminate the docker container using:
-
-```
-docker rm -f wskdebug-webaction-1559204115390
-```
-
-The containers are named `wskdebug-ACTION-TIMESTAMP`.
-
-### Restore action
-
-If `wskdebug` fails unexpectedly or gets killed, it might leave the forwarding agent behind in place of the action. You should be able to restore the original action using the copied action named `*_wskdebug_original`.
-
-```
-wsk action delete myaction
-wsk action create --copy myaction myaction_wskdebug_original
-wsk action delete myaction_wskdebug_original
-```
-
-Alternatively you could also redeploy your action and then delete the backup:
-
-```
-# deploy command might vary
-wsk action update myaction myaction.js
-
-wsk action delete myaction_wskdebug_original
-```
-
-## Help
+### Help output
 
 ```
 wskdebug <action> [source-path]
@@ -205,3 +204,104 @@ Options:
   --version      Show version number
   -h, --help     Show help
 ```
+
+## Troubleshooting
+
+### Port is already allocated
+
+You can only run one `wskdebug` aka one action for the same runtime (debug port) at a time.
+
+If you get an error like this:
+
+```
+docker: Error response from daemon: driver failed programming external connectivity on endpoint wskdebug-webaction-1559204115390 (3919892fab2981bf9feab0b6ba3fc256676de59d1a6ab67519295757313e8ac3): Bind for 0.0.0.0:9229 failed: port is already allocated.
+```
+
+it means that there is another `wskdebug` already running or that its container was left over, blocking the debug port.
+
+Either quit the other `wskdebug` or if its an unexpected left over, terminate the docker container using:
+
+```
+docker rm -f wskdebug-webaction-1559204115390
+```
+
+The containers are named `wskdebug-ACTION-TIMESTAMP`.
+
+### Restore action
+
+If `wskdebug` fails unexpectedly or gets killed, it might leave the forwarding agent behind in place of the action. You should be able to restore the original action using the copied action named `*_wskdebug_original`.
+
+```
+wsk action delete myaction
+wsk action create --copy myaction myaction_wskdebug_original
+wsk action delete myaction_wskdebug_original
+```
+
+Alternatively you could also redeploy your action and then delete the backup:
+
+```
+# deploy command might vary
+wsk action update myaction myaction.js
+
+wsk action delete myaction_wskdebug_original
+```
+
+## Development
+
+### Extending wskdebug for other kinds
+
+For automatic code reloading for other languages, `wskdebug` needs to be extended to support these kinds. This happens inside [src/kinds](https://git.corp.adobe.com/nui/wskdebug/tree/master/src/kinds).
+
+- [Mapping of kinds to docker images](#mapping-of-kinds-to-docker-images)
+- [Custom debug kind](#custom-debug-kind)
+- [Default debug ports and commands](#default-debug-ports-and-commands)
+- [Support code reloading](#support-code-reloading)
+- [Available variables](#available-variables)
+
+
+#### Mapping of kinds to docker images
+
+To change the mapping of kinds to docker images (based on [runtimes.json](https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json) from OpenWhisk), change [src/kinds/kinds.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/kinds.js).
+
+#### Custom debug kind
+
+For default debug instructions and live code reloading, a custom "debug kind js" needs to be provided at `src/kinds/<debugKind>/<debugKind>.js`.
+
+`<debugKind>` must be without the version, i.e. the part before the `:` in a kind. For example for `nodejs:8` it will be `nodejs`, for `nodejs:default` it will be `nodejs` as well. This is because normally the debug mechanism is the same across language versions. To define a different debug kind, add a `debug` field in [src/kinds/kinds.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/kinds.js) for the particular kind, e.g. for `nodejs:6`set `debug: "nodejsLegacy"` and then it must be under `src/kinds/nodejsLegacy/nodejsLegacy.js`.
+
+This js module needs to export an object with different fields. These can be either a literal value (for simple fixed things such as a port) or a function (allowing for dynamic logic based on cli arguments etc.). These functions get the `invoker` passed as argument, which provides [certain variables](#available-variables) such as cli arguments.
+
+A complete example is the [src/kinds/nodejs/nodejs.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/nodejs.js).
+
+See below for the different items to do.
+
+#### Default debug ports and commands
+
+To just add default debug ports and docker command for a kind, add a custom debug kind and export an object with  `description`, `port` and `command` fields. Optionally `dockerArgs` for extra docker arguments (such as passing in environment variables using `-e` if necessary).
+
+#### Support code reloading
+
+To support live code reloading/mounting, add a custom debug kind and export an object with a `mountAction` function. This has to return an action that dynamically loads the code at the start of each activation. A typical approach is to mount the `<source-path>` (folder) passed on the cli as `/code` inside the docker container, from where the mount action can reload it. The exact mechanism will depend on the language - in node.js for example, `eval()` is [used for plain actions](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/mount-plain.js#L30). The docker mounting can be specified in `dockerArgs`.
+
+The `mountAction(invoker)` must return an object that is an openwhisk action `/init` definition, which consists of:
+
+* `binary`: true if zip or binary distribution (depends on kind), false if plain code (for scripting languages)
+* `main`: name of the entry function
+* `code`: string with source code or base64 encoded if binary for the live mount
+
+Example mounting actions from nodejs are [mount-plain.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/mount-plain.js) (for plain node.js actions) and [mount-require.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/mount-require.js) (for action zips expecting node modules using `require()`).
+
+#### Available variables
+
+See also [invoker.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/invoker.js). Note that some of these might not be set yet, for example `invoker.debug.port` is not yet available when `port()` is invoked. The raw cli args are usually available as `invoker.<cli-arg>`.
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `invoker.main` | `string` | name of the `main` entry point (from cli args) |
+| `invoker.sourceFile` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
+| `invoker.sourceDir` | `string` | absolute path to `<source-file>` from the cli args if it's a directory, or the containing directory if it's a file |
+| `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
+| `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |
+| `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
+| `invoker.debug.command` | `string` | `--command` from cli args or the `command` from the debug kind js (in that preference) |
+
