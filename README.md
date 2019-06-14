@@ -6,9 +6,7 @@ wskdebug
 
 _Debugger and live development tool for Apache OpenWhisk_
 
-`wskdebug` is a command line tool to debug and faster develop OpenWhisk actions in your favorite IDE or debugger.
-
-Features:
+`wskdebug` is a command line tool to develop and debug OpenWhisk actions in your favorite IDE or debugger with a fast feedback loop. It features:
 
 * full debugging of actions of the respective language runtime
 * automatic code reloading
