@@ -51,6 +51,10 @@ The debugger works with all normal actions, including web actions. Sequences or 
 npm install -g @nui/wskdebug
 ```
 
+## Licensing
+
+This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
+
 ## Usage
 
 The action to debug (e.g. `myaction`) must already be deployed.
