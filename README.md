@@ -12,11 +12,12 @@ _Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.ap
 
 _This screen cast shows live development of a web action using `wskdebug`. On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result inthe browser: "Hello, Alex!"._
 
-### Table of contents
+### Contents
 
   * [What it does](#what-it-does)
   * [How it works](#how-it-works)
   * [Installation](#installation)
+  * [License](#license)
   * [Usage](#usage)
   * [Troubleshooting](#troubleshooting)
   * [Development](#development)
@@ -43,11 +44,15 @@ However, there is no time limit on stepping through the code itself if you do no
 
 ## How it works
 
-`wskdebug` supports debugging of an action by forwarding it from the OpenWhisk system to a local container on your desktop and executing it there. By overriding the command to run in the container and other docker run configurations, the local container or better the action/language runtime inside the container is run in debug mode and the respective debug port is opened and exposed to the local desktop.
+`wskdebug` supports debugging of an action by forwarding it from the OpenWhisk system to a local container on your desktop and executing it there. By overriding the command to run in the container and other docker run configurations, the local container respectively the language runtime inside the container is run in debug mode and the respective debug port is opened and exposed to the local desktop.
 
 Furthermore, the local container can mount the local source files and automatically reload them on every invocation. `wskdebug` can also listen for changes to the source files and trigger an automatic reload of a web action or direct invocation of the action or just any shell command, e.g. if you need to make more nuanced curl requests to trigger your API.
 
 The debugger works with all normal actions, including web actions. Sequences or compositions itself (not the component actions) are not supported. The solution is only based on custom actions and works with any OpenWhisk system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
+
+![diagram showing wskdebug](wskdebug.png)
+
+_This diagram shows how `wskdebug` works including debugging, source mounting and browser LiveReload. The wskdebug components are marked blue. Follow the steps from (1) to (10) to see what happens when the user edits and saves a source file._
 
 ## Installation
 
@@ -79,7 +84,7 @@ npm uninstall -g @nui/wskdebug
 ```
 
 
-## Licensing
+## License
 
 This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
 
