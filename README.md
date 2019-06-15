@@ -1,6 +1,6 @@
 <!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
 [![npm version](https://img.shields.io/badge/%40nui%2Fwskdebug-1.0.0-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/wskdebug/-/@nui/wskdebug-1.0.0.tgz)
-_Currently under the Adobe internal @nui npm scope, but [planning to open source](https://git.corp.adobe.com/OpenSourceAdvisoryBoard/opensource_submission_process/issues/434)_
+ _Currently under the Adobe internal @nui npm scope, but [planning to open source](https://git.corp.adobe.com/OpenSourceAdvisoryBoard/opensource_submission_process/issues/434)._
 
 
 wskdebug
@@ -10,7 +10,7 @@ _Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.ap
 
 ![screen cast showing debugging of a web action using wskdebug](wskdebug.gif)
 
-_This screen cast shows live development of a web action using `wskdebug`. On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result inthe browser: "Hello, Alex!"._
+_This screen cast shows live development of a web action using `wskdebug`. On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result in the browser: "Hello, Alex!"._
 
 ### Contents
 
