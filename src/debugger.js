@@ -260,7 +260,7 @@ class Debugger {
                 },
                 limits: {
                     timeout: (this.argv.agentTimeout || 300) * 1000,
-                    concurrency: 200
+                    concurrency: this.concurrency ? 200: 1
                 },
                 annotations: [
                     ...action.annotations,
