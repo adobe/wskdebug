@@ -264,6 +264,7 @@ class Debugger {
                 },
                 annotations: [
                     ...action.annotations,
+                    { key: "provide-api-key", value: true },
                     { key: "wskdebug", value: true },
                     { key: "description", value: `wskdebug agent. temporarily installed over original action. original action backup at ${backupName}.` }
                 ],
