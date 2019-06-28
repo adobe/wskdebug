@@ -498,6 +498,7 @@ class Debugger {
                         return swagger.definitions.ActionLimits.properties.concurrency;
                     }
                 } catch (e) {
+                    console.warn('Could not read /api/v1/api-docs, setting max action concurrency to 1')
                     return false;
                 }
             }
