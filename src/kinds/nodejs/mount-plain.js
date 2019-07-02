@@ -10,7 +10,7 @@
  governing permissions and limitations under the License.
 */
 
-'use strict';
+/* eslint-disable strict */
 
 const fs = require('fs');
 
