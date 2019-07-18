@@ -260,10 +260,11 @@ class Debugger {
                 },
                 limits: {
                     timeout: (this.argv.agentTimeout || 300) * 1000,
-                    concurrency: 200
+                    concurrency: this.concurrency ? 200: 1
                 },
                 annotations: [
                     ...action.annotations,
+                    { key: "provide-api-key", value: true },
                     { key: "wskdebug", value: true },
                     { key: "description", value: `wskdebug agent. temporarily installed over original action. original action backup at ${backupName}.` }
                 ],
@@ -498,6 +499,7 @@ class Debugger {
                         return swagger.definitions.ActionLimits.properties.concurrency;
                     }
                 } catch (e) {
+                    console.warn('Could not read /api/v1/api-docs, setting max action concurrency to 1')
                     return false;
                 }
             }
