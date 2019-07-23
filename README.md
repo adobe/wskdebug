@@ -48,7 +48,12 @@ However, there is no time limit on stepping through the code itself if you do no
 
 Furthermore, the local container can mount the local source files and automatically reload them on every invocation. `wskdebug` can also listen for changes to the source files and trigger an automatic reload of a web action or direct invocation of the action or just any shell command, e.g. if you need to make more nuanced curl requests to trigger your API.
 
-The debugger works with all normal actions, including web actions. Sequences or compositions itself (not the component actions) are not supported. The solution is only based on custom actions and works with any OpenWhisk system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
+The debugger works with all normal actions, including web actions. Sequences are
+not directly supported but can be debugged by starting a debugger for each
+action in the sequence see [Nodejs Multiple actions](#nodejs-multiple-actions).
+Compositions itself (not the component actions) are not supported. The solution
+is only based on custom actions and works with any OpenWhisk
+system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
 
 ![diagram showing wskdebug](wskdebug.png)
 
@@ -130,7 +135,54 @@ For troubleshooting, you can run the debugger in verbose mode by adding `"-v"` t
 
 Each `wskdebug` process can debug and live reload exactly a single action. To debug multiple actions, run `wskdebug` for each. If all of them are using the same kind/language, where the default debug port is the same, different ports need to be used. 
 
-This is automatic if you have a separate VS code window for each action and use the VS code approach above using `launch`. With `launch`, VS Code will automatically pick an unused debug port and pass it as `--inspect=port` param to `wskdebug` as if it were `node`, and `wskdebug` understands this as alias for its `--port` argument.
+In VS code you can start multiple debuggers from the same window thanks to compounds. Compounds provide a way to aggregate VS code configurations to run them together.
+Here is a `.vscode/launch.json` example that uses compounds to expose a config starting 2 wskdebug instances:
+
+```json
+{
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mypackage/action1",
+      "runtimeExecutable": "wskdebug",
+      "args": [
+        "mypackage/action1",
+        "${workspaceFolder}/action1.js"
+      ],
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/code",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mypackage/action2",
+      "runtimeExecutable": "wskdebug",
+      "args": [
+        "mypackage/action2",
+        "${workspaceFolder}/action2.js"
+      ],
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/code",
+      "outputCapture": "std"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "All actions",
+      "configurations": [
+        "mypackage/action1",
+        "mypackage/action2"
+      ]
+    }
+  ]
+}
+```
+
+Alternatively, if you don't want to use compounds, you can have a separate VS code window for each action with separate VS code `launch` configurations.
+
+With `launch`, VS Code will automatically pick an unused debug port and pass it as `--inspect=port` param to `wskdebug` as if it were `node`, and `wskdebug` understands this as alias for its `--port` argument.
 
 Otherwise you have to make sure to pass a different `--port` to each `wskdebug`. Similarly, if you use browser live reloading for multiple actions, you must specify different ports for that uing `--lr-port` on each instance.
 
