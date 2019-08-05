@@ -46,8 +46,6 @@ _wskdebug_ is a command line tool to **develop and debug** [OpenWhisk actions](h
 * auto-invoking of actions on code changes
 * or running any shell command such as a curl request on code changes
 
-Requires [Node.js](https://nodejs.org) (version 10+) and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
-
 Currently, [Node.js actions](https://openwhisk.apache.org/documentation.html#nodejs) are supported out of the box. For others, basic debugging can be [configured on the command line](#unsupported-action-kinds), while automatic code reloading needs an [extension in `wskdebug`](#extending-wskdebug-for-other-kinds).
 
 ### Note on timeouts
