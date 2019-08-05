@@ -275,7 +275,7 @@ Options:
 
 ### Does not work, namespace shows as undefined
 
-Your `~/.wskprops` must include the correct `NAMESPACE` field. See [issue #3 - TODO](https://github.com/adobe/wskdebug/issues/TODO).
+Your `~/.wskprops` must include the correct `NAMESPACE` field. See [issue #3](https://github.com/adobe/wskdebug/issues/3).
 
 ### No invocations visible in wskdebug
 
