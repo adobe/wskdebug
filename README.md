@@ -44,9 +44,11 @@ However, there is no time limit on stepping through the code itself if you do no
 
 ## How it works
 
-`wskdebug` supports debugging of an action by forwarding it from the OpenWhisk system to a local container on your desktop and executing it there. By overriding the command to run in the container and other docker run configurations, the local container respectively the language runtime inside the container is run in debug mode and the respective debug port is opened and exposed to the local desktop.
+`wskdebug` supports debugging of an action by **forwarding** it from the OpenWhisk system to a **local container on your desktop** and executing it there. By overriding the command to run in the container and other `docker run` configurations, the local container respectively the language runtime inside the container is run in debug mode and the respective debug port is opened and exposed to the local desktop.
 
-Furthermore, the local container can mount the local source files and automatically reload them on every invocation. `wskdebug` can also listen for changes to the source files and trigger an automatic reload of a web action or direct invocation of the action or just any shell command, e.g. if you need to make more nuanced curl requests to trigger your API.
+Furthermore, the local container can **mount the local source files** and automatically reload them on every invocation. `wskdebug` can also listen for changes to the source files and trigger an automatic reload of a web action or direct invocation of the action or just any shell command, e.g. if you need to make more nuanced curl requests to trigger your API.
+
+The forwarding works by **replacing the original action with a special agent**. This uses the concurrency feature of NodeJS actions to queue incoming activations and pass them on to the polling `wskdebug` client. Once execution on the client side has finished, the result is passed back to the agent which then returns the result to the original activation, which was blocked. Here is where the limits come in: if the invocation is synchronous (blocking=true) or a web action, openwhisk will not wait for more than 1 minute. For asynchronous invocations, it depends on the timeout setting of the action. `wskdebug` sets it to 5 minute by default but it can be controlled via `--agent-timeout` to set it to a feasible maximum.
 
 The debugger works with all normal actions, including web actions. Sequences are
 not directly supported but can be debugged by starting a debugger for each
