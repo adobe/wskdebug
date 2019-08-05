@@ -1,12 +1,9 @@
-<!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
-[![npm version](https://img.shields.io/badge/%40nui%2Fwskdebug-1.0.0-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/wskdebug/-/@nui/wskdebug-1.0.0.tgz)
- _Currently under the Adobe internal @nui npm scope, but [planning to open source](https://git.corp.adobe.com/OpenSourceAdvisoryBoard/opensource_submission_process/issues/434)._
-
+[![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 wskdebug
 ========
 
-_Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.apache.org)_
+Debugging and live development tool for [Apache OpenWhisk](https://openwhisk.apache.org).
 
 ![screen cast showing debugging of a web action using wskdebug](wskdebug.gif)
 
@@ -65,29 +62,16 @@ _This diagram shows how `wskdebug` works including debugging, source mounting an
 
 `wskdebug` requires [Node.js](https://nodejs.org) (version 10+), `npm` and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
 
-To install:
-
-1. Download [wskdebug-1.0.0.tgz](https://git.corp.adobe.com/nui/wskdebug/releases/download/v1.0.0/wskdebug-1.0.0.tgz) (or pick latest version from [releases](https://git.corp.adobe.com/nui/wskdebug/releases))
-2. Run
-   ```
-   npm install -g wskdebug-1.0.0.tgz
-   ```
-
-### Installation via artifactory
-
-If you don't mind logging into Adobe's internal Artifactory, you can install it this way, makes it a bit easier to get future updates:
+To install or update run:
 
 ```
-# enter your Adobe LDAP credentials and Adobe email when asked
-npm login --scope=@nui --registry=https://artifactory.corp.adobe.com:443/artifactory/api/npm/npm-nui-release-local/
-
-npm install -g @nui/wskdebug
+npm install -g @adobe/wskdebug
 ```
 
 ### Uninstall
 
 ```
-npm uninstall -g @nui/wskdebug
+npm uninstall -g @adobe/wskdebug
 ```
 
 
@@ -316,7 +300,7 @@ Options:
 
 ### Does not work, namespace shows as undefined
 
-Your `~/.wskprops` must include the correct `NAMESPACE` field. See [issue #3](https://git.corp.adobe.com/nui/wskdebug/issues/3).
+Your `~/.wskprops` must include the correct `NAMESPACE` field. See [issue #3 - TODO](https://github.com/adobe/wskdebug/issues/TODO).
 
 ### No invocations visible in wskdebug
 
@@ -366,7 +350,7 @@ wsk action delete myaction_wskdebug_original
 
 ### Extending wskdebug for other kinds
 
-For automatic code reloading for other languages, `wskdebug` needs to be extended to support these kinds. This happens inside [src/kinds](https://git.corp.adobe.com/nui/wskdebug/tree/master/src/kinds).
+For automatic code reloading for other languages, `wskdebug` needs to be extended to support these kinds. This happens inside [src/kinds](src/kinds).
 
 - [Mapping of kinds to docker images](#mapping-of-kinds-to-docker-images)
 - [Custom debug kind](#custom-debug-kind)
@@ -377,17 +361,17 @@ For automatic code reloading for other languages, `wskdebug` needs to be extende
 
 #### Mapping of kinds to docker images
 
-To change the mapping of kinds to docker images (based on [runtimes.json](https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json) from OpenWhisk), change [src/kinds/kinds.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/kinds.js).
+To change the mapping of kinds to docker images (based on [runtimes.json](https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json) from OpenWhisk), change [src/kinds/kinds.js](src/kinds/kinds.js).
 
 #### Custom debug kind
 
 For default debug instructions and live code reloading, a custom "debug kind js" needs to be provided at `src/kinds/<debugKind>/<debugKind>.js`.
 
-`<debugKind>` must be without the version, i.e. the part before the `:` in a kind. For example for `nodejs:8` it will be `nodejs`, for `nodejs:default` it will be `nodejs` as well. This is because normally the debug mechanism is the same across language versions. To define a different debug kind, add a `debug` field in [src/kinds/kinds.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/kinds.js) for the particular kind, e.g. for `nodejs:6`set `debug: "nodejsLegacy"` and then it must be under `src/kinds/nodejsLegacy/nodejsLegacy.js`.
+`<debugKind>` must be without the version, i.e. the part before the `:` in a kind. For example for `nodejs:8` it will be `nodejs`, for `nodejs:default` it will be `nodejs` as well. This is because normally the debug mechanism is the same across language versions. To define a different debug kind, add a `debug` field in [src/kinds/kinds.js](src/kinds/kinds.js) for the particular kind, e.g. for `nodejs:6`set `debug: "nodejsLegacy"` and then it must be under `src/kinds/nodejsLegacy/nodejsLegacy.js`.
 
 This js module needs to export an object with different fields. These can be either a literal value (for simple fixed things such as a port) or a function (allowing for dynamic logic based on cli arguments etc.). These functions get the `invoker` passed as argument, which provides [certain variables](#available-variables) such as cli arguments.
 
-A complete example is the [src/kinds/nodejs/nodejs.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/nodejs.js).
+A complete example is the [src/kinds/nodejs/nodejs.js](src/kinds/nodejs/nodejs.js).
 
 See below for the different items to do.
 
@@ -397,7 +381,7 @@ To just add default debug ports and docker command for a kind, add a custom debu
 
 #### Support code reloading
 
-To support live code reloading/mounting, add a custom debug kind and export an object with a `mountAction` function. This has to return an action that dynamically loads the code at the start of each activation. A typical approach is to mount the `<source-path>` (folder) passed on the cli as `/code` inside the docker container, from where the mount action can reload it. The exact mechanism will depend on the language - in node.js for example, `eval()` is [used for plain actions](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/mount-plain.js#L30). The docker mounting can be specified in `dockerArgs`.
+To support live code reloading/mounting, add a custom debug kind and export an object with a `mountAction` function. This has to return an action that dynamically loads the code at the start of each activation. A typical approach is to mount the `<source-path>` (folder) passed on the cli as `/code` inside the docker container, from where the mount action can reload it. The exact mechanism will depend on the language - in node.js for example, `eval()` is [used for plain actions](src/kinds/nodejs/mount-plain.js#L30). The docker mounting can be specified in `dockerArgs`.
 
 The `mountAction(invoker)` must return an object that is an openwhisk action `/init` definition, which consists of:
 
@@ -405,11 +389,11 @@ The `mountAction(invoker)` must return an object that is an openwhisk action `/i
 * `main`: name of the entry function
 * `code`: string with source code or base64 encoded if binary for the live mount
 
-Example mounting actions from nodejs are [mount-plain.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/mount-plain.js) (for plain node.js actions) and [mount-require.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/kinds/nodejs/mount-require.js) (for action zips expecting node modules using `require()`).
+Example mounting actions from nodejs are [mount-plain.js](src/kinds/nodejs/mount-plain.js) (for plain node.js actions) and [mount-require.js](src/kinds/nodejs/mount-require.js) (for action zips expecting node modules using `require()`).
 
 #### Available variables
 
-See also [invoker.js](https://git.corp.adobe.com/nui/wskdebug/blob/master/src/invoker.js). Note that some of these might not be set yet, for example `invoker.debug.port` is not yet available when `port()` is invoked. The raw cli args are usually available as `invoker.<cli-arg>`.
+See also [invoker.js](src/invoker.js). Note that some of these might not be set yet, for example `invoker.debug.port` is not yet available when `port()` is invoked. The raw cli args are usually available as `invoker.<cli-arg>`.
 
 | Variable | Type | Description |
 |----------|------|-------------|

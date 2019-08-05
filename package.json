@@ -1,5 +1,5 @@
 {
-    "name": "@nui/wskdebug",
+    "name": "@adobe/wskdebug",
     "version": "1.0.0",
     "description": "Debugging and live development tool for Apache OpenWhisk",
     "main": "index.js",
@@ -9,12 +9,9 @@
     "scripts": {
         "pretest": "eslint ./"
     },
-    "publishConfig": {
-        "registry": "https://artifactory.corp.adobe.com/artifactory/api/npm/npm-nui-release-local"
-    },
     "repository": {
         "type": "git",
-        "url": "https://git.corp.adobe.com/nui/wskdebug.git"
+        "url": "https://github.com/adobe/wskdebug.git"
     },
     "dependencies": {
         "fetch-retry": "^2.2.0",
