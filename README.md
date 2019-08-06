@@ -1,4 +1,4 @@
-[![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+![](https://img.shields.io/badge/cli-wskdebug-brightgreen) [![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
 wskdebug
 ========
@@ -20,6 +20,7 @@ _This screen cast shows live development of a web action using `wskdebug`. On th
   * [Contributing](#contributing)
   * [Licensing](#licensing)
 
+<a name="installation"></a>
 ## Installation
 
 `wskdebug` requires [Node.js](https://nodejs.org) (version 10+), `npm` and a local [Docker](https://www.docker.com/products/docker-desktop) environment.
@@ -30,12 +31,14 @@ To install or update run:
 npm install -g @adobe/wskdebug
 ```
 
+<a name="uninstall"></a>
 ### Uninstall
 
 ```
 npm uninstall -g @adobe/wskdebug
 ```
 
+<a name="about"></a>
 ## About
 
 _wskdebug_ is a command line tool to **develop and debug** [OpenWhisk actions](https://openwhisk.apache.org/documentation.html#programming-model-actions) in your favorite IDE or debugger with a **fast feedback loop**. It features:
@@ -54,12 +57,13 @@ Web actions or other blocking invocations time out after **1 minute in OpenWhisk
 
 However, there is no time limit on stepping through the code itself if you do not care about the result of the action being handled synchronously.
 
+<a name="usage"></a>
 ## Usage
 
 The action to debug (e.g. `myaction`) must already be deployed.
 
 + [Node.js: Visual Studio Code](#nodejs-visual-studio-code)
-+ [Node.js: Visual Studio Code - Multiple actions](#nodejs-visual-studio-code-multiple-actions)
++ [Node.js: Multiple actions](#nodejs-multiple-actions)
 + [Node.js: Plain usage](#nodejs-plain-usage)
 + [Node.js: Chrome DevTools](#nodejs-chrome-devtools)
 + [Node.js: node-inspect command line](#nodejs-node-inspect-command-line)
@@ -67,6 +71,7 @@ The action to debug (e.g. `myaction`) must already be deployed.
 + [Live reloading](#live-reloading)
 + [Help output](#help-output)
 
+<a name="nodejs-visual-studio-code"></a>
 ### Node.js: Visual Studio Code
 
 Add the configuration below to your [launch.json](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations). Replace `MYACTION` with the name of your action and `ACTION.js` with the source file containing the action. When you run this, it will start wskdebug and should automatically connect the debugger.
@@ -92,6 +97,7 @@ This snippets enables browser LiveReloading using `-l`. For other reloading opti
 
 For troubleshooting, you can run the debugger in verbose mode by adding `"-v"` to the `args` array.
 
+<a name="nodejs-multiple-actions"></a>
 ### Node.js: Multiple actions
 
 Each `wskdebug` process can debug and live reload exactly a single action. To debug multiple actions, run `wskdebug` for each. If all of them are using the same kind/language, where the default debug port is the same, different ports need to be used. 
@@ -147,6 +153,7 @@ With `launch`, VS Code will automatically pick an unused debug port and pass it 
 
 Otherwise you have to make sure to pass a different `--port` to each `wskdebug`. Similarly, if you use browser live reloading for multiple actions, you must specify different ports for that uing `--lr-port` on each instance.
 
+<a name="nodejs-plain-usage"></a>
 ### Node.js: Plain usage
 
 Run `wskdebug` and specify the action
@@ -168,6 +175,7 @@ You can then use a debugger to connect to the debug port, in this case `localhos
 
 When done, terminate `wskdebug` (not kill!) using CTRL+C. It will cleanup and remove the forwarding agent and restore the original action.
 
+<a name="nodejs-chrome-devtools"></a>
 ### Node.js: Chrome DevTools
 
 Run [Node.js: Plain usage](#nodejs-plain-usage) and then:
@@ -186,6 +194,7 @@ Run [Node.js: Plain usage](#nodejs-plain-usage) and then:
 
 See also this [article](https://medium.com/@paul_irish/debugging-node-js-nightlies-with-chrome-devtools-7c4a1b95ae27).
 
+<a name="nodejs-node-inspect-command-line"></a>
 ### Node.js: node-inspect command line
 
 Run [Node.js: Plain usage](#nodejs-plain-usage) and then:
@@ -196,6 +205,7 @@ Use the command line Node debugger [node-inspect](https://github.com/nodejs/node
 node-inspect 127.0.0.1:9229
 ```
 
+<a name="unsupported-action-kinds"></a>
 ### Unsupported action kinds
 
 To enable debugging for kinds/languages not supported out of the box, you can specify these cli arguments manually:
@@ -209,6 +219,7 @@ Once you found a working configuration, feel encouraged to open a pull request t
 
 For automatic code reloading for other languages, `wskdebug` needs to be [extended](#extending-wskdebug-for-other-kinds).
 
+<a name="live-reloading"></a>
 ### Live reloading
 
 There are 3 different live reload mechanism possible that will trigger something when the `<source-path>` is modified:
@@ -217,6 +228,7 @@ There are 3 different live reload mechanism possible that will trigger something
 * Action invocation using `-P` and `-a`: specify `-P` pointing to a json file with the invocation parameters and the debugged action will be automatically invoked with these parameters. This will also automatically invoke if that json file is modified. If you need to trigger a different action (because there is chain of actions before the one you are debugging), define it using `-a`.
 * Arbitrary shell command using `-r`: this can be used to invoke web APIs implemented by web actions using `curl`, or any scenario where something needs to be triggered so that the debugged action gets activated downstream.
 
+<a name="help-output"></a>
 ### Help output
 
 ```
@@ -271,6 +283,7 @@ Options:
   -h, --help     Show help
 ```
 
+<a name="troubleshooting"></a>
 ## Troubleshooting
 
 ### Does not work, namespace shows as undefined
@@ -321,6 +334,7 @@ wsk action update myaction myaction.js
 wsk action delete myaction_wskdebug_original
 ```
 
+<a name="how-it-works"></a>
 ## How it works
 
 `wskdebug` supports debugging of an action by **forwarding** it from the OpenWhisk system to a **local container on your desktop** and executing it there. By overriding the command to run in the container and other `docker run` configurations, the local container respectively the language runtime inside the container is run in debug mode and the respective debug port is opened and exposed to the local desktop.
@@ -340,8 +354,10 @@ system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/ap
 
 _This diagram shows how `wskdebug` works including debugging, source mounting and browser LiveReload. The wskdebug components are marked blue. Follow the steps from (1) to (10) to see what happens when the user edits and saves a source file._
 
+<a name="development"></a>
 ## Development
 
+<a name="extending-wskdebug-for-other-kinds"></a>
 ### Extending wskdebug for other kinds
 
 For automatic code reloading for other languages, `wskdebug` needs to be extended to support these kinds. This happens inside [src/kinds](src/kinds).
@@ -353,10 +369,12 @@ For automatic code reloading for other languages, `wskdebug` needs to be extende
 - [Available variables](#available-variables)
 
 
+<a name="mapping-of-kinds-to-docker-images"></a>
 #### Mapping of kinds to docker images
 
 To change the mapping of kinds to docker images (based on [runtimes.json](https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json) from OpenWhisk), change [src/kinds/kinds.js](src/kinds/kinds.js).
 
+<a name="custom-debug-kind"></a>
 #### Custom debug kind
 
 For default debug instructions and live code reloading, a custom "debug kind js" needs to be provided at `src/kinds/<debugKind>/<debugKind>.js`.
@@ -369,10 +387,12 @@ A complete example is the [src/kinds/nodejs/nodejs.js](src/kinds/nodejs/nodejs.j
 
 See below for the different items to do.
 
+<a name="default-debug-ports-and-commands"></a>
 #### Default debug ports and commands
 
 To just add default debug ports and docker command for a kind, add a custom debug kind and export an object with  `description`, `port` and `command` fields. Optionally `dockerArgs` for extra docker arguments (such as passing in environment variables using `-e` if necessary).
 
+<a name="support-code-reloading"></a>
 #### Support code reloading
 
 To support live code reloading/mounting, add a custom debug kind and export an object with a `mountAction` function. This has to return an action that dynamically loads the code at the start of each activation. A typical approach is to mount the `<source-path>` (folder) passed on the cli as `/code` inside the docker container, from where the mount action can reload it. The exact mechanism will depend on the language - in node.js for example, `eval()` is [used for plain actions](src/kinds/nodejs/mount-plain.js#L30). The docker mounting can be specified in `dockerArgs`.
@@ -385,6 +405,7 @@ The `mountAction(invoker)` must return an object that is an openwhisk action `/i
 
 Example mounting actions from nodejs are [mount-plain.js](src/kinds/nodejs/mount-plain.js) (for plain node.js actions) and [mount-require.js](src/kinds/nodejs/mount-require.js) (for action zips expecting node modules using `require()`).
 
+<a name="available-variables"></a>
 #### Available variables
 
 See also [invoker.js](src/invoker.js). Note that some of these might not be set yet, for example `invoker.debug.port` is not yet available when `port()` is invoked. The raw cli args are usually available as `invoker.<cli-arg>`.
@@ -399,10 +420,12 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 | `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
 | `invoker.debug.command` | `string` | `--command` from cli args or the `command` from the debug kind js (in that preference) |
 
+<a name="contributing"></a>
 ## Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](CONTRIBUTING.md) for more information.
 
+<a name="licensing"></a>
 ## Licensing
 
 This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
