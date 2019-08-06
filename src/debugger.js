@@ -40,8 +40,6 @@ class Debugger {
             this.wskProps.ignore_certs = true;
         }
 
-        this.wsk = openwhisk(this.wskProps);
-
         const srcPath = this.argv.sourcePath;
         if (srcPath) {
             if (fs.lstatSync(srcPath).isFile()) {
@@ -54,7 +52,30 @@ class Debugger {
         }
     }
 
+    async setupWsk() {
+        if (!this.wsk) {
+            this.wsk = openwhisk(this.wskProps);
+            if (this.wskProps.namespace === undefined) {
+                // there is a strict 1-1 bijection between auth and namespace, hence auth is enough.
+                // while the openwhisk() client does not care about the namespace being set,
+                // some code here in wskdebug relies on it to be set correctly.
+                const namespaces = await this.wsk.namespaces.list();
+                if (!namespaces || namespaces.length < 1) {
+                    console.error("Error: Unknown namespace. Please specify as NAMESPACE in .wskprops.");
+                    process.exit(2);
+                }
+                if (namespaces.length > 1) {
+                    console.error("Error: OpenWhisk reports access to more than one namespace. Please specify the namespace to use as NAMESPACE in .wskprops.", namespaces);
+                    process.exit(2);
+                }
+                this.wskProps.namespace = namespaces[0];
+            }
+        }
+    }
+
     async run() {
+        await this.setupWsk();
+
         // quick fail for missing requirements such as docker not running
         await OpenWhiskInvoker.checkIfAvailable();
 
