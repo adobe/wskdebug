@@ -16,10 +16,10 @@
 // note: openwhisk deployments might have their own versions
 module.exports = {
     "nodejs"         : { // deprecated (no version)
-        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
+        image: "openwhisk/action-nodejs-v10:latest"
     },
-    "nodejs:default" : { // Adobe I/O Runtime specific
-        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
+    "nodejs:default" : {
+        image: "openwhisk/action-nodejs-v10:latest"
     },
     "nodejs:6"       : {
         image: "openwhisk/nodejs6action:latest"
@@ -29,8 +29,8 @@ module.exports = {
     "nodejs:8"       : {
         image: "openwhisk/action-nodejs-v8:latest"
     },
-    "nodejs:10"      : { // Adobe I/O Runtime specific
-        image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.13"
+    "nodejs:10"      : {
+        image: "openwhisk/action-nodejs-v10:latest"
     },
     "nodejs:12"      : {
         image: "openwhisk/action-nodejs-v12:latest"
