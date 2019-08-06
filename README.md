@@ -222,7 +222,7 @@ For automatic code reloading for other languages, `wskdebug` needs to be [extend
 <a name="live-reloading"></a>
 ### Live reloading
 
-There are 3 different live reload mechanism possible that will trigger something when the `<source-path>` is modified:
+There are 3 different live reload mechanism possible that will trigger something when the `<source-path>` is modified. Any of them enables the hot reloading of code on any new activation.
 
 * Browser `LiveReload` using `-l`: works with [LiveReload](http://livereload.com) browser extensions (though we noticed only Chrome worked reliably) that will automatically reload the web page. Great for web actions that render HTML to browsers.
 * Action invocation using `-P` and `-a`: specify `-P` pointing to a json file with the invocation parameters and the debugged action will be automatically invoked with these parameters. This will also automatically invoke if that json file is modified. If you need to trigger a different action (because there is chain of actions before the one you are debugging), define it using `-a`.
