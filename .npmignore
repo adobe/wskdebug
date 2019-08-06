@@ -1,5 +1,11 @@
 .eslint*
 .vscode/
 
+*.gif
+*.png
+*.jpg
 TODO.md
+LICENSE_HEADER.md
+CODE_OF_CONDUCT.md
+.github/
 examples/
