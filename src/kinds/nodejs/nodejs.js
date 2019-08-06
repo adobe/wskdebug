@@ -34,7 +34,7 @@ module.exports = {
             throw new Error("[source-path] must point to the action javascript source file, it cannot be a folder.");
         }
 
-        return `-v ${invoker.sourceDir}:${CODE_MOUNT}`;
+        return `-v "${invoker.sourceDir}:${CODE_MOUNT}"`;
     },
 
     // return action for /init that mounts the sources specified by invoker.sourcePath
