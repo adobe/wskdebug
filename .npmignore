@@ -1,6 +1,7 @@
 .eslint*
 .vscode/
 
+*wskdebug*.tgz
 *.gif
 *.png
 *.jpg
