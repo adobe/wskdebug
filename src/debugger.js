@@ -541,7 +541,9 @@ class Debugger {
             const liveReloadServer = livereload.createServer({
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,
-                extraExts: ["json"]
+                // TODO: we might need a cli arg to extend this. unfortunately wildcards don't work
+                //       for now it's just a list of all standard openwhisk supported languages
+                extraExts: ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
             });
             liveReloadServer.watch(this.argv.sourceDir);
 
