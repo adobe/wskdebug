@@ -401,7 +401,9 @@ class Debugger {
                     }
 
                     while (true) {
-                        process.stdout.write(".");
+                        if (this.argv.verbose) {
+                            process.stdout.write(".");
+                        }
 
                         const activations = await this.wsk.activations.list({
                             name: `${name}_wskdebug_invoked`,
