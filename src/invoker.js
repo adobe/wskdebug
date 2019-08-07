@@ -140,7 +140,8 @@ class OpenWhiskInvoker {
         // source mounting
         if (this.sourcePath) {
             if (!this.debug.mountAction) {
-                throw new Error(`Sorry, mounting sources not yet supported for: ${kind}.`);
+                console.warn(`Warning: Sorry, mounting sources not yet supported for: ${kind}.`);
+                this.sourcePath = undefined;
             }
         }
 
