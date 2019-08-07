@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="2 connect debugger" type="Remote">
+    <log_file alias="wskdebug.log" path="$PROJECT_DIR$/wskdebug.log" skipped="false" />
+    <option name="USE_SOCKET_TRANSPORT" value="true" />
+    <option name="SERVER_MODE" value="false" />
+    <option name="SHMEM_ADDRESS" />
+    <option name="HOST" value="localhost" />
+    <option name="PORT" value="1044" />
+    <option name="AUTO_RESTART" value="false" />
+    <RunnerSettings RunnerId="Debug">
+      <option name="DEBUG_PORT" value="1044" />
+      <option name="LOCAL" value="false" />
+    </RunnerSettings>
+    <method v="2" />
+  </configuration>
+</component>

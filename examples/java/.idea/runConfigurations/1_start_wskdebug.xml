@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="1 start wskdebug" type="BashConfigurationType" factoryName="Bash">
+    <option name="INTERPRETER_OPTIONS" value="-c &quot;wskdebug wskdebug-examples/helloJava Hello.java -P debugParams.json --command 'java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1044 -Dfile.encoding=UTF-8 -Xshareclasses:cacheDir=/javaSharedCache,readonly -Xquickstart -jar /javaAction/build/libs/javaAction-all.jar' --internal-port=1044 --kind=java 2&gt;&amp;1 | tee wskdebug.log&quot;" />
+    <option name="INTERPRETER_PATH" value="/bin/bash" />
+    <option name="PROJECT_INTERPRETER" value="false" />
+    <option name="WORKING_DIRECTORY" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <option name="SCRIPT_NAME" value="#" />
+    <option name="PARAMETERS" value="" />
+    <module name="" />
+    <envs>
+      <env name="WSK_CONFIG_FILE" value="$USER_HOME$/.wskprops-itcloud-nui-ci" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>
