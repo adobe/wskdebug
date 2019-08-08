@@ -5,7 +5,7 @@ wskdebug
 
 Debugging and live development for [Apache OpenWhisk](https://openwhisk.apache.org). CLI tool written in [Node.js](https://nodejs.org) and depending on a [local Docker](https://www.docker.com/products/docker-desktop). Integrates easily into IDEs such as [Visual Studio Code](https://code.visualstudio.com).
 
---
+---
 
 Live development of a web action using `wskdebug`:
 
@@ -13,14 +13,13 @@ Live development of a web action using `wskdebug`:
 
 _On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result in the browser: "Hello, Alex!"._
 
---
+---
 
 [Youtube video of wskdebug being demoed to the OpenWhisk community](https://youtu.be/Qtsi8VFm0uY?t=727):
 
 [![youtube video demoing wskdebug to the openwhisk community](resources/wskdebug-ow-meeting-screenshot.png)](https://youtu.be/Qtsi8VFm0uY?t=727)
 
---
-
+---
 
 ### Contents
 
