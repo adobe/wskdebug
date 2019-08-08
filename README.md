@@ -5,9 +5,22 @@ wskdebug
 
 Debugging and live development for [Apache OpenWhisk](https://openwhisk.apache.org). CLI tool written in [Node.js](https://nodejs.org) and depending on a [local Docker](https://www.docker.com/products/docker-desktop). Integrates easily into IDEs such as [Visual Studio Code](https://code.visualstudio.com).
 
-![screen cast showing debugging of a web action using wskdebug](wskdebug.gif)
+--
 
-_This screen cast shows live development of a web action using `wskdebug`. On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result in the browser: "Hello, Alex!"._
+Live development of a web action using `wskdebug`:
+
+![screen cast showing debugging of a web action using wskdebug](resources/wskdebug-demo.gif)
+
+_On the left [Visual Studio Code](https://code.visualstudio.com) in debug mode. On the right, a browser with the page rendered by the web action. The developer notices the feature of handling the `name` is not implemented yet. A breakpoint shows them that `name` is set, but it's not used. They add the code to respond and greet with `name`. Simply by saving the code, the browser auto reloads the page and the breakpoint is hit again. They step through to see that the new code is working fine, and get the expected result in the browser: "Hello, Alex!"._
+
+--
+
+[Youtube video of wskdebug being demoed to the OpenWhisk community](https://youtu.be/Qtsi8VFm0uY?t=727):
+
+[![youtube video demoing wskdebug to the openwhisk community](resources/wskdebug-ow-meeting-screenshot.png)](https://youtu.be/Qtsi8VFm0uY?t=727)
+
+--
+
 
 ### Contents
 
@@ -350,7 +363,7 @@ Compositions itself (not the component actions) are not supported. The solution
 is only based on custom actions and works with any OpenWhisk
 system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
 
-![diagram showing wskdebug](wskdebug.png)
+![diagram showing wskdebug](resources/wskdebug-architecture.png)
 
 _This diagram shows how `wskdebug` works including debugging, source mounting and browser LiveReload. The wskdebug components are marked blue. Follow the steps from (1) to (10) to see what happens when the user edits and saves a source file._
 
