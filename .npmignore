@@ -1,5 +1,6 @@
 .eslint*
 .vscode/
+.DS_Store
 
 *wskdebug*.tgz
 *.gif
