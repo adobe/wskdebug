@@ -30,11 +30,13 @@ module.exports = {
 
     // return extra docker arguments such as mounting the source path
     dockerArgs: function(invoker) {
-        if (!invoker.sourceFile) {
-            throw new Error("[source-path] must point to the action javascript source file, it cannot be a folder.");
-        }
+        if (invoker.sourceDir) {
+            if (!invoker.sourceFile) {
+                throw new Error("[source-path] must point to the action javascript source file, it cannot be a folder.");
+            }
 
-        return `-v "${invoker.sourceDir}:${CODE_MOUNT}"`;
+            return `-v "${invoker.sourceDir}:${CODE_MOUNT}"`;
+        }
     },
 
     // return action for /init that mounts the sources specified by invoker.sourcePath
