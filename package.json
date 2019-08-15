@@ -1,6 +1,6 @@
 {
     "name": "@adobe/wskdebug",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Debugging and live development tool for Apache OpenWhisk",
     "license": "Apache-2.0",
     "author": "Adobe Inc.",
