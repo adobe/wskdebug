@@ -148,6 +148,20 @@ class OpenWhiskInvoker {
         const dockerArgsFromKind = resolveValue(this.debug.dockerArgs, this) || "";
         const dockerArgsFromUser = this.dockerArgs || "";
 
+        try {
+            execute(`docker inspect --type=image ${image} 2> /dev/null`);
+        } catch (e) {
+            console.log(`
+Docker image must be downloaded, might take a while: ${image}
+
+Note: If you debug in VS Code and it fails with "Cannot connect to runtime process"
+due to a timeout, run this command once:
+
+    docker pull ${image}
+
+Alternatively set a higher 'timeout' in the launch configuration, such as 60000 (1 min).\n`)
+        }
+
         if (this.verbose) {
             console.log(`Starting local debug container ${this.name()}`);
         }
