@@ -18,7 +18,8 @@
         "wskdebug": "./index.js"
     },
     "scripts": {
-        "pretest": "eslint ./"
+        "pretest": "eslint ./",
+        "test": "node ./index.js && node ./index.js --version"
     },
     "dependencies": {
         "fetch-retry": "^2.2.0",
