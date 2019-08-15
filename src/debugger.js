@@ -40,14 +40,14 @@ class Debugger {
             this.wskProps.ignore_certs = true;
         }
 
-        const srcPath = this.argv.sourcePath;
-        if (srcPath) {
-            if (fs.lstatSync(srcPath).isFile()) {
-                this.argv.sourceDir = path.dirname(srcPath);
-                this.argv.sourceFile = path.basename(srcPath);
+        const watchPath = this.argv.sourcePath;
+        if (watchPath) {
+            // source path is always the path to watch
+            // we only watch entire directories
+            if (fs.lstatSync(watchPath).isFile()) {
+                this.watchDir = path.dirname(watchPath);
             } else {
-                this.argv.sourceDir = srcPath;
-                this.argv.sourceFile = "";
+                this.watchDir = watchPath;
             }
         }
     }
@@ -536,66 +536,84 @@ class Debugger {
     }
 
     async startLiveReload() {
-        if (this.argv.sourceDir && (this.argv.livereload || this.argv.onChange || this.argv.invokeParams)) {
+        if (this.watchDir &&
+            // each of these triggers listening
+            (   this.argv.livereload
+             || this.argv.onBuild
+             || this.argv.onChange
+             || this.argv.invokeParams
+             || this.argv.invokeAction )
+        ) {
+
+            // run build initially
+            if (this.argv.onBuild) {
+                console.info("=> Build:", this.argv.onBuild);
+                spawnSync(this.argv.onBuild, {shell: true, stdio: "inherit"});
+            }
 
             const liveReloadServer = livereload.createServer({
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,
+                exclusions: [this.argv.buildPath],
                 // TODO: we might need a cli arg to extend this. unfortunately wildcards don't work
                 //       for now it's just a list of all standard openwhisk supported languages
                 extraExts: ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
             });
-            liveReloadServer.watch(this.argv.sourceDir);
+            liveReloadServer.watch(this.watchDir);
 
-            if (this.argv.onChange || this.argv.invokeParams || this.argv.invokeAction) {
-                // overwrite function to get notified on changes
-                const refresh = liveReloadServer.refresh;
-                const argv = this.argv;
-                const wsk = this.wsk;
-                liveReloadServer.refresh = function(filepath) {
-                    try {
-                        let result = [];
-                        // call original function if we are listening
-                        if (argv.livereload) {
-                            result = refresh.call(this, filepath);
-                        }
-
-                        // run shell command
-                        if (argv.onChange) {
-                            console.info("=> Run:", argv.onChange);
-                            spawnSync(argv.onChange, {shell: true, stdio: "inherit"});
-                        }
-
-                        // action invoke
-                        if (argv.invokeParams || argv.invokeAction) {
-                            let json = {};
-                            if (argv.invokeParams) {
-                                if (argv.invokeParams.trim().startsWith("{")) {
-                                    json = JSON.parse(argv.invokeParams);
-                                } else {
-                                    json = JSON.parse(fs.readFileSync(argv.invokeParams, {encoding: 'utf8'}));
-                                }
-                            }
-                            const action = argv.invokeAction || argv.action;
-                            wsk.actions.invoke({
-                                name: action,
-                                params: json
-                            }).then(response => {
-                                console.info(`=> Invoked action ${action} with params ${argv.invokeParams}: ${response.activationId}`);
-                            }).catch(err => {
-                                console.error("Error invoking action:", err);
-                            });
-                        }
-
-                        return result;
-                    } catch (e) {
-                        console.error(e);
+            // overwrite function to get notified on changes
+            const refresh = liveReloadServer.refresh;
+            const argv = this.argv;
+            const wsk = this.wsk;
+            liveReloadServer.refresh = function(filepath) {
+                try {
+                    let result = [];
+                    // call original function if we are listening
+                    if (argv.livereload) {
+                        result = refresh.call(this, filepath);
                     }
-                };
-            }
+
+                    // run build command before invoke triggers below
+                    if (argv.onBuild) {
+                        console.info("=> Build:", argv.onBuild);
+                        spawnSync(argv.onBuild, {shell: true, stdio: "inherit"});
+                    }
+
+                    // run shell command
+                    if (argv.onChange) {
+                        console.info("=> Run:", argv.onChange);
+                        spawnSync(argv.onChange, {shell: true, stdio: "inherit"});
+                    }
+
+                    // action invoke
+                    if (argv.invokeParams || argv.invokeAction) {
+                        let json = {};
+                        if (argv.invokeParams) {
+                            if (argv.invokeParams.trim().startsWith("{")) {
+                                json = JSON.parse(argv.invokeParams);
+                            } else {
+                                json = JSON.parse(fs.readFileSync(argv.invokeParams, {encoding: 'utf8'}));
+                            }
+                        }
+                        const action = argv.invokeAction || argv.action;
+                        wsk.actions.invoke({
+                            name: action,
+                            params: json
+                        }).then(response => {
+                            console.info(`=> Invoked action ${action} with params ${argv.invokeParams}: ${response.activationId}`);
+                        }).catch(err => {
+                            console.error("Error invoking action:", err);
+                        });
+                    }
+
+                    return result;
+                } catch (e) {
+                    console.error(e);
+                }
+            };
 
             if (this.argv.livereload) {
-                console.info(`LiveReload enabled for ${this.argv.sourceDir} on port ${liveReloadServer.config.port}`);
+                console.info(`LiveReload enabled for ${this.watchDir} on port ${liveReloadServer.config.port}`);
             }
         }
     }

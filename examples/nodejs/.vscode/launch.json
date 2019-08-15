@@ -13,6 +13,17 @@
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "/code",
             "outputCapture": "std"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "wskdebug with build",
+            "runtimeExecutable": "wskdebug",
+            "args": [ "wskdebug-examples/webaction", "${workspaceFolder}/webaction.js", "-l", "--on-build", "mkdir build/; cp webaction.js build/", "--build-path", "build/webaction.js" ],
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/code",
+            "outputCapture": "std"
         }
+
     ]
 }

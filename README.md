@@ -288,6 +288,8 @@ Debugging options:
                    with space: 'wskdebug --docker-args " -e key=var" myaction'    [string]
   --agent-timeout  Debugging agent timeout (seconds). Default: 5 min              [number]
   --on-start       Shell command to run when debugger is up                       [string]
+  --on-build       Shell command for custom action build step                     [string]
+  --build-path     Path to built action, result of --on-build command             [string]
 
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result

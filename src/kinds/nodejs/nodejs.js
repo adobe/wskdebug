@@ -32,7 +32,7 @@ module.exports = {
     dockerArgs: function(invoker) {
         if (invoker.sourceDir) {
             if (!invoker.sourceFile) {
-                throw new Error("[source-path] must point to the action javascript source file, it cannot be a folder.");
+                throw new Error("[source-path] or --build-path must point to the action javascript source file, it cannot be a folder.");
             }
 
             return `-v "${invoker.sourceDir}:${CODE_MOUNT}"`;

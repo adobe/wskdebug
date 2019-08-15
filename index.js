@@ -151,6 +151,17 @@ yargs
             group: "Debugging options:",
             describe: "Shell command to run when debugger is up"
         });
+        yargs.option("on-build", {
+            type: "string",
+            group: "Debugging options:",
+            describe: "Shell command for custom action build step"
+        });
+        yargs.option("build-path", {
+            type: "string",
+            group: "Debugging options:",
+            describe: "Path to built action, result of --on-build command",
+            coerce: path.resolve // ensure absolute path
+        });
 
         // nodejs options
         yargs.option("inspect", {
