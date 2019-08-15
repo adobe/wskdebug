@@ -1,6 +1,8 @@
 name: Publish to NPM
 
-on: [release]
+# disabled for now
+# NODE_AUTH_TOKEN auth in npm does not work for an account that has 2 factor authentication enabled
+on: []
 
 jobs:
   publish-npm:
