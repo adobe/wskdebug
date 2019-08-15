@@ -49,10 +49,9 @@ function resolveValue(value, ...args) {
 }
 
 class OpenWhiskInvoker {
-    constructor(actionName, action, wskProps, options) {
+    constructor(actionName, action, options, wskProps, wsk) {
         this.actionName = actionName;
         this.action = action;
-        this.wskProps = wskProps;
 
         this.kind = options.kind;
         this.image = options.image;
@@ -65,6 +64,9 @@ class OpenWhiskInvoker {
         this.sourceDir = options.sourceDir;
         this.sourceFile = options.sourceFile;
         this.main = options.main;
+
+        this.wskProps = wskProps;
+        this.wsk = wsk;
 
         this.containerName = `wskdebug-${this.action.name}-${Date.now()}`;
     }
@@ -82,6 +84,34 @@ class OpenWhiskInvoker {
         }
     }
 
+    async getImageForKind(kind) {
+        try {
+            const owSystemInfo = await this.wsk.actions.client.request("GET", "/");
+            if (owSystemInfo.runtimes) {
+                // transform result into a nice dictionary kind => image
+                const runtimes = {};
+                for (const set of Object.values(owSystemInfo.runtimes)) {
+                    for (const entry of set) {
+                        let image = entry.image;
+                        // fix for Adobe I/O Runtime reporting incorrect image prefixes
+                        image = image.replace("bladerunner/", "adobeapiplatform/");
+                        runtimes[entry.kind] = image;
+                    }
+                }
+                return runtimes[kind];
+
+            } else if (this.verbose) {
+                console.warn("Could not retrieve runtime images from OpenWhisk, using default image list.");
+            }
+
+        } catch (e) {
+            if (this.verbose) {
+                console.warn("Could not retrieve runtime images from OpenWhisk, using default image list.", e.message);
+            }
+        }
+        return kinds.images[kind];
+    }
+
     async startContainer() {
         const action = this.action;
 
@@ -90,24 +120,23 @@ class OpenWhiskInvoker {
         // precendence:
         // 1. arguments (this.image)
         // 2. action (action.exec.image)
-        // 3. defaults (kinds[kind].image)
+        // 3. defaults (kinds.images[kind])
 
         const kind = this.kind || action.exec.kind;
 
         if (kind === "blackbox") {
             throw new Error("Action is of kind 'blackbox', must specify kind using `--kind` argument.");
         }
-        const baseKind = kind.split(":")[0];
 
-        const runtime = kinds[kind] || {};
-        const image = this.image || action.exec.image || runtime.image;
+        // const runtime = kinds[kind] || {};
+        this.image = this.image || action.exec.image || await this.getImageForKind(kind);
 
-        if (!image) {
+        if (!this.image) {
             throw new Error(`Unknown kind: ${kind}. You might want to specify --image.`);
         }
 
         // debugging instructions
-        this.debugKind = runtime.debug || baseKind;
+        this.debugKind = kinds.debugKinds[kind] || kind.split(":")[0];
         try {
             this.debug = require(`${__dirname}/kinds/${this.debugKind}/${this.debugKind}`);
         } catch (e) {
@@ -151,18 +180,18 @@ class OpenWhiskInvoker {
         let showDockerRunOutput = this.verbose;
 
         try {
-            execute(`docker inspect --type=image ${image} 2> /dev/null`);
+            execute(`docker inspect --type=image ${this.image} 2> /dev/null`);
         } catch (e) {
             // make sure the user can see the image download process as part of docker run
             showDockerRunOutput = true;
             console.log(`
 +------------------------------------------------------------------------------------------+
-| Docker image must be downloaded: ${image}
+| Docker image must be downloaded: ${this.image}
 |                                                                                          |
 | Note: If you debug in VS Code and it fails with "Cannot connect to runtime process"      |
 | due to a timeout, run this command once:                                                 |
 |                                                                                          |
-|     docker pull ${image}
+|     docker pull ${this.image}
 |                                                                                          |
 | Alternatively set a higher 'timeout' in the launch configuration, such as 60000 (1 min). |
 +------------------------------------------------------------------------------------------+
@@ -183,7 +212,7 @@ class OpenWhiskInvoker {
                 -p ${this.debug.port}:${this.debug.internalPort}
                 ${dockerArgsFromKind}
                 ${dockerArgsFromUser}
-                ${image}
+                ${this.image}
                 ${this.debug.command}
             `,
             { stdio: showDockerRunOutput ? "inherit" : null },
@@ -199,6 +228,7 @@ class OpenWhiskInvoker {
         if (this.sourcePath) {
             console.info(`Sources    : ${this.sourcePath}`);
         }
+        console.info(`Image      : ${this.image}`);
         console.info(`Debug type : ${this.debugKind}`);
         console.info(`Debug port : localhost:${this.debug.port}`)
     }

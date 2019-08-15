@@ -86,7 +86,7 @@ class Debugger {
         const { action, agentAlreadyInstalled } = await this.getAction(actionName);
 
         // local debug container
-        this.invoker = new OpenWhiskInvoker(actionName, action, this.wskProps, this.argv);
+        this.invoker = new OpenWhiskInvoker(actionName, action, this.argv, this.wskProps, this.wsk);
 
         this.registerExitHandler(actionName);
 

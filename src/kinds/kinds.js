@@ -12,78 +12,36 @@
 
 'use strict';
 
-// https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json
-// note: openwhisk deployments might have their own versions
 module.exports = {
-    "nodejs"         : { // deprecated (no version)
-        image: "openwhisk/action-nodejs-v10:latest"
+    //  map to a shared debug kind, otherwise uses the kind name itself
+    debugKinds: {
+        // "nodejs:6": "nodejsLegacy"
     },
-    "nodejs:default" : {
-        image: "openwhisk/action-nodejs-v10:latest"
-    },
-    "nodejs:6"       : {
-        image: "openwhisk/nodejs6action:latest"
-        // can reference a different DEBUG below if necessary
-        // debug: "nodejsLegacy"
-    },
-    "nodejs:8"       : {
-        image: "openwhisk/action-nodejs-v8:latest"
-    },
-    "nodejs:10"      : {
-        image: "openwhisk/action-nodejs-v10:latest"
-    },
-    "nodejs:12"      : {
-        image: "openwhisk/action-nodejs-v12:latest"
-    },
-    "python"         : { // deprecated (no version)
-        image: "openwhisk/python2action:latest"
-    },
-    "python:2"       : {
-        image: "openwhisk/python2action:latest"
-    },
-    "python:3"       : {
-        image: "openwhisk/python3action:latest"
-    },
-    "swift"          : { // deprecated (no version)
-        image: "openwhisk/action-swift-v4.1:latest"
-    },
-    "swift:3"        : { // deprecated, but still available
-        image: "openwhisk/swift3action:latest"
-    },
-    "swift:3.1.1"    : {
-        image: "openwhisk/action-swift-v3.1.1:latest"
-    },
-    "swift:4.1"      : {
-        image: "openwhisk/action-swift-v4.1:latest"
-    },
-    "swift:4.2"      : {
-        image: "openwhisk/action-swift-v4.2:latest"
-    },
-    "java"           : {
-        image: "openwhisk/java8action:latest"
-    },
-    "php:7.1"        : {
-        image: "openwhisk/action-php-v7.1:latest"
-    },
-    "php:7.2"        : {
-        image: "openwhisk/action-php-v7.2:latest"
-    },
-    "php:7.3"        : {
-        image: "openwhisk/action-php-v7.3:latest"
-    },
-    "ruby:2.5"       : {
-        image: "openwhisk/action-ruby-v2.5:latest"
-    },
-    "go:1.11"        : {
-        image: "openwhisk/actionloop-golang-v1.11:latest"
-    },
-    "dotnet:2.2"     : {
-        image: "openwhisk/action-dotnet-v2.2:latest"
-    },
-    "ballerina:0.990": {
-        image: "openwhisk/action-ballerina-v0.990.2:latest"
-    },
-    "native"         : {
-        image: "openwhisk/dockerskeleton:latest"
+    // fallback in case the openwhisk api doesn't work or doesn't return runtimes
+    // list taken from: https://github.com/apache/incubator-openwhisk/blob/master/ansible/files/runtimes.json
+    images: {
+        "nodejs": "openwhisk/action-nodejs-v10:latest", // deprecated (no version)
+        "nodejs:default": "openwhisk/action-nodejs-v10:latest",
+        "nodejs:6": "openwhisk/nodejs6action:latest",
+        "nodejs:8": "openwhisk/action-nodejs-v8:latest",
+        "nodejs:10": "openwhisk/action-nodejs-v10:latest",
+        "nodejs:12": "openwhisk/action-nodejs-v12:latest",
+        "python": "openwhisk/python2action:latest", // deprecated (no version)
+        "python:2": "openwhisk/python2action:latest",
+        "python:3": "openwhisk/python3action:latest",
+        "swift": "openwhisk/action-swift-v4.1:latest", // deprecated (no version)
+        "swift:3": "openwhisk/swift3action:latest", // deprecated, but still available
+        "swift:3.1.1": "openwhisk/action-swift-v3.1.1:latest",
+        "swift:4.1": "openwhisk/action-swift-v4.1:latest",
+        "swift:4.2": "openwhisk/action-swift-v4.2:latest",
+        "java": "openwhisk/java8action:latest",
+        "php:7.1": "openwhisk/action-php-v7.1:latest",
+        "php:7.2": "openwhisk/action-php-v7.2:latest",
+        "php:7.3": "openwhisk/action-php-v7.3:latest",
+        "ruby:2.5": "openwhisk/action-ruby-v2.5:latest",
+        "go:1.11": "openwhisk/actionloop-golang-v1.11:latest",
+        "dotnet:2.2": "openwhisk/action-dotnet-v2.2:latest",
+        "ballerina:0.990": "openwhisk/action-ballerina-v0.990.2:latest",
+        "native": "openwhisk/dockerskeleton:latest"
     }
 }
