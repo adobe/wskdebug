@@ -148,18 +148,25 @@ class OpenWhiskInvoker {
         const dockerArgsFromKind = resolveValue(this.debug.dockerArgs, this) || "";
         const dockerArgsFromUser = this.dockerArgs || "";
 
+        let showDockerRunOutput = this.verbose;
+
         try {
             execute(`docker inspect --type=image ${image} 2> /dev/null`);
         } catch (e) {
+            // make sure the user can see the image download process as part of docker run
+            showDockerRunOutput = true;
             console.log(`
-Docker image must be downloaded, might take a while: ${image}
-
-Note: If you debug in VS Code and it fails with "Cannot connect to runtime process"
-due to a timeout, run this command once:
-
-    docker pull ${image}
-
-Alternatively set a higher 'timeout' in the launch configuration, such as 60000 (1 min).\n`)
++------------------------------------------------------------------------------------------+
+| Docker image must be downloaded: ${image}
+|                                                                                          |
+| Note: If you debug in VS Code and it fails with "Cannot connect to runtime process"      |
+| due to a timeout, run this command once:                                                 |
+|                                                                                          |
+|     docker pull ${image}
+|                                                                                          |
+| Alternatively set a higher 'timeout' in the launch configuration, such as 60000 (1 min). |
++------------------------------------------------------------------------------------------+
+`)
         }
 
         if (this.verbose) {
@@ -179,7 +186,7 @@ Alternatively set a higher 'timeout' in the launch configuration, such as 60000 
                 ${image}
                 ${this.debug.command}
             `,
-            {},
+            { stdio: showDockerRunOutput ? "inherit" : null },
             this.verbose
         );
 
