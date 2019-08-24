@@ -162,6 +162,12 @@ yargs
             describe: "Path to built action, result of --on-build command",
             coerce: path.resolve // ensure absolute path
         });
+        yargs.option("c", {
+            alias: "condition",
+            type: "string",
+            group: "Debugging options:",
+            describe: "Hit condition to trigger debugger. Javascript expression evaluated against input parameters. Example: 'debug == 'true'"
+        });
 
         // nodejs options
         yargs.option("inspect", {

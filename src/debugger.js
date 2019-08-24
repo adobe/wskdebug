@@ -107,6 +107,9 @@ class Debugger {
             console.log();
             console.info(`Action     : ${actionName}`);
             this.invoker.logInfo();
+            if (this.argv.condition) {
+                console.info(`Condition  : ${this.argv.condition}`);
+            }
             console.log();
             console.info(`Ready, waiting for activations`);
             console.info(`Use CTRL+C to exit`);
@@ -269,6 +272,13 @@ class Debugger {
 
         // this is to support older openwhisks for which nodejs:default is less than version 8
         const nodejs8 = await this.openwhiskSupports("nodejs8");
+
+        if (this.argv.condition) {
+            action.parameters.push({
+                key: "$condition",
+                value: this.argv.condition
+            });
+        }
 
         // overwrite action with agent
         await this.wsk.actions.update({

@@ -10,8 +10,9 @@
  governing permissions and limitations under the License.
 */
 
-'use strict';
+/* eslint-disable strict */
 
+const openwhisk = require('openwhisk');
 const os = require("os");
 
 // shared across activations
@@ -70,6 +71,27 @@ async function waitForCompletion(activationId) {
     return result;
 }
 
+function hit(args, condition) {
+    if (condition) {
+        console.log("arguments:", args);
+        console.log("evaluating hit condition: ", condition);
+        // eslint-disable-next-line no-with
+        with (args) {
+            try {
+                // eslint-disable-next-line no-eval
+                return eval(condition);
+            } catch (e) {
+                console.log("failed to eval condition:", e);
+                // be safe: do not hit if error in condition
+                return false;
+            }
+        }
+    } else {
+        // no condition => always hit
+        return true;
+    }
+}
+
 async function doMain(args) {
     console.log("hostname:", os.hostname());
 
@@ -84,9 +106,22 @@ async function doMain(args) {
         return complete(args);
 
     } else {
-        // normal activation: if debugger is waiting, make activation available to him
-        console.log("activation, passing on to debugger");
-        return waitForCompletion( newActivation(args) );
+        // normal activation: make activation available to debugger
+        console.log("activation");
+
+        if (hit(args, args.$condition)) {
+            console.log("passing on to debugger");
+            return waitForCompletion( newActivation(args) );
+
+        } else {
+            console.log("condition evaluated to false, executing original action");
+            return openwhisk().actions.invoke({
+                name: `${process.env.__OW_ACTION_NAME}_wskdebug_original`,
+                params: args,
+                blocking: true,
+                result: true
+            });
+        }
     }
 }
 

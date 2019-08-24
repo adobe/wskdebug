@@ -10,7 +10,7 @@
  governing permissions and limitations under the License.
 */
 
-'use strict';
+/* eslint-disable strict */
 
 const openwhisk = require('openwhisk');
 
@@ -98,12 +98,45 @@ async function waitForCompletion(activationId) {
     );
 }
 
-async function doMain(args) {
-    // normal activation: if debugger is waiting, make activation available to him
-    console.log("activation, passing on to debugger");
+function hit(args, condition) {
+    if (condition) {
+        console.log("arguments:", args);
+        console.log("evaluating hit condition: ", condition);
+        // eslint-disable-next-line no-with
+        with (args) {
+            try {
+                // eslint-disable-next-line no-eval
+                return eval(condition);
+            } catch (e) {
+                console.log("failed to eval condition:", e);
+                // be safe: do not hit if error in condition
+                return false;
+            }
+        }
+    } else {
+        // no condition => always hit
+        return true;
+    }
+}
 
-    const id = await newActivation(args);
-    return waitForCompletion( id );
+async function doMain(args) {
+    // normal activation: make activation available to debugger
+    console.log("activation");
+
+    if (hit(args, args.$condition)) {
+        console.log("passing on to debugger");
+        const id = await newActivation(args);
+        return waitForCompletion( id );
+
+    } else {
+        console.log("condition evaluated to false, executing original action");
+        return openwhisk().actions.invoke({
+            name: `${process.env.__OW_ACTION_NAME}_wskdebug_original`,
+            params: args,
+            blocking: true,
+            result: true
+        });
+    }
 }
 
 // OpenWhisk does not like raw exceptions, the error object should be the string message only

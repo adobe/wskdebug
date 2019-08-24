@@ -81,6 +81,7 @@ The action to debug (e.g. `myaction`) must already be deployed.
 + [Node.js: node-inspect command line](#nodejs-node-inspect-command-line)
 + [Unsupported action kinds](#unsupported-action-kinds)
 + [Live reloading](#live-reloading)
++ [Hit condition](#hit-condition)
 + [Help output](#help-output)
 
 <a name="nodejs-visual-studio-code"></a>
@@ -112,7 +113,7 @@ For troubleshooting, you can run the debugger in verbose mode by adding `"-v"` t
 <a name="nodejs-multiple-actions"></a>
 ### Node.js: Multiple actions
 
-Each `wskdebug` process can debug and live reload exactly a single action. To debug multiple actions, run `wskdebug` for each. If all of them are using the same kind/language, where the default debug port is the same, different ports need to be used. 
+Each `wskdebug` process can debug and live reload exactly a single action. To debug multiple actions, run `wskdebug` for each. If all of them are using the same kind/language, where the default debug port is the same, different ports need to be used.
 
 In VS code you can start multiple debuggers from the same window thanks to compounds. Compounds provide a way to aggregate VS code configurations to run them together.
 Here is a `.vscode/launch.json` example that uses compounds to expose a config starting 2 wskdebug instances:
@@ -240,6 +241,37 @@ There are 3 different live reload mechanism possible that will trigger something
 * Action invocation using `-P` and `-a`: specify `-P` pointing to a json file with the invocation parameters and the debugged action will be automatically invoked with these parameters. This will also automatically invoke if that json file is modified. If you need to trigger a different action (because there is chain of actions before the one you are debugging), define it using `-a`.
 * Arbitrary shell command using `-r`: this can be used to invoke web APIs implemented by web actions using `curl`, or any scenario where something needs to be triggered so that the debugged action gets activated downstream.
 
+
+<a name="hit-condition"></a>
+### Hit condition
+
+If an action is invoked frequently but you only want to catch certain invocations, such as ones you control, you can set a condition to limit when the debugger should be invoked using `-c` or `--condition`. This must be a javascript expression which will be evaluated agains the input parameters.
+
+For example, with a condition like this:
+
+```
+-c "debug === 'true'"
+```
+
+an invocation with these parameters would trigger the debugger:
+
+```
+{
+  "debug": "true",
+  "some": "value"
+}
+```
+
+In another example for a web action, let's assume we want to catch all requests from Chrome. We would check for the header:
+
+```
+-c "__ow_headers['user-agent'].includes('Chrome')"
+```
+
+If the hit condition is true, the action will be forwarded to the local debug container. If not, the original action (copy) in the OpenWhisk system will be invoked.
+
+Please note that if source mounting is enabled, this will not have an effect on the original action copy that is invoked if the hit condition is not met. This means if condition is met, the latest local code changes will have an effect, but if not, the version of the action before wskdebug was started will be executed.
+
 <a name="help-output"></a>
 ### Help output
 
@@ -290,7 +322,8 @@ Debugging options:
   --on-start       Shell command to run when debugger is up                       [string]
   --on-build       Shell command for custom action build step                     [string]
   --build-path     Path to built action, result of --on-build command             [string]
-
+  -c, --condition  Hit condition to trigger debugger. Javascript expression evaluated
+                   against input parameters. Example: 'debug == 'true'            [string]
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result
   --version      Show version number
