@@ -19,6 +19,11 @@ const fs = require('fs-extra');
 const OpenWhiskInvoker = require('./invoker');
 const { spawnSync } = require('child_process');
 const livereload = require('livereload');
+const http = require('http');
+const ngrok = require('ngrok');
+const url = require('url');
+const util = require('util');
+const crypto = require("crypto");
 
 async function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
@@ -96,9 +101,14 @@ class Debugger {
 
             // start container & agent
             await this.invoker.start();
-            if (!agentAlreadyInstalled) {
-                await this.installAgent(actionName, action);
+
+            // user can switch between agents (ngrok or not), hence we need to restore
+            // (better would be to track the agent + its version and avoid a restore, but that's TBD)
+            if (agentAlreadyInstalled) {
+                await this.restoreAction(actionName);
             }
+
+            await this.installAgent(actionName, action);
 
             if (this.argv.onStart) {
                 console.log("On start:", this.argv.onStart);
@@ -116,24 +126,33 @@ class Debugger {
 
             this.ready = true;
 
-            // main blocking loop - end debugger with ctrl+c
-            while (true) {
-                const activation = await this.waitForActivations(actionName);
+            // from here on, end debugger with ctrl+c
+            if (this.argv.ngrok) {
+                // promise that never resolves (ngrokServer keeps running)
+                await new Promise(() => {});
 
-                const id = activation.$activationId;
-                delete activation.$activationId;
+            } else {
+                // main blocking loop (agent concurrent + non-concurrent)
+                while (true) {
+                    const activation = await this.waitForActivations(actionName);
 
-                const startTime = Date.now();
+                    const id = activation.$activationId;
+                    delete activation.$activationId;
 
-                // run this activation on the local docker container
-                // which will block if the actual debugger hits a breakpoint
-                const result = await this.invoker.run(activation, id);
+                    const startTime = Date.now();
 
-                const duration = Date.now() - startTime;
+                    // run this activation on the local docker container
+                    // which will block if the actual debugger hits a breakpoint
+                    const result = await this.invoker.run(activation, id);
 
-                // pass on the local result to the agent in openwhisk
-                await this.completeActivation(actionName, id, result, duration);
+                    const duration = Date.now() - startTime;
+
+                    // pass on the local result to the agent in openwhisk
+                    await this.completeActivation(actionName, id, result, duration);
+                }
             }
+        } catch (e) {
+            console.error(e);
         } finally {
             await this.onExit(actionName);
         }
@@ -232,32 +251,77 @@ class Debugger {
         this.agentInstalled = true;
 
         const agentDir = `${__dirname}/../agent`;
+        let agentName;
 
         // choose the right agent implementation
         let code;
-        this.concurrency = await this.openwhiskSupports("concurrency");
-        if (this.concurrency) {
-            // normal fast agent using concurrent node.js actions
-            code = fs.readFileSync(`${agentDir}/agent.js`, {encoding: 'utf8'});
+        if (this.argv.ngrok) {
+            // user manually requested ngrok
+            if (this.argv.verbose) {
+                console.log("Setting up ngrok", this.argv.ngrokRegion ? `(region: ${this.argv.ngrokRegion})` : "");
+            }
+
+            // 1. start local server on random port
+            const ngrokServer = http.createServer(this.ngrokHandler.bind(this));
+            // turn server.listen() into promise so we can await
+            const listen = util.promisify( ngrokServer.listen.bind(ngrokServer) );
+            await listen(0, '127.0.0.1');
+
+            // 2. start ngrok tunnel connected to that port
+            this.ngrokServerPort = ngrokServer.address().port;
+
+            // create a unique authorization token that we check on our local instance later
+            // this adds extra protection on top of the uniquely generated ngrok subdomain (e.g. a01ae275.ngrok.io)
+            this.ngrokAuth = crypto.randomBytes(32).toString("hex");
+            const ngrokUrl = await ngrok.connect({
+                addr: this.ngrokServerPort,
+                region: this.argv.ngrokRegion
+            });
+
+            // 3. pass on public ngrok url to agent
+            action.parameters.push({
+                key: "$ngrokUrl",
+                value: url.parse(ngrokUrl).host
+            });
+            action.parameters.push({
+                key: "$ngrokAuth",
+                value: this.ngrokAuth
+            });
+
+            console.log(`Ngrok forwarding: ${ngrokUrl} => http://localhost:${this.ngrokServerPort} (auth: ${this.ngrokAuth})`);
+
+            // agent using ngrok for forwarding
+            agentName = "ngrok";
+            code = fs.readFileSync(`${agentDir}/agent-ngrok.js`, {encoding: 'utf8'});
 
         } else {
-            console.log("This OpenWhisk system does not seem to support action concurrency. Debugging will be a bit slower.");
+            this.concurrency = await this.openwhiskSupports("concurrency");
+            if (this.concurrency) {
+                // normal fast agent using concurrent node.js actions
+                agentName = "concurrency";
+                code = fs.readFileSync(`${agentDir}/agent-concurrency.js`, {encoding: 'utf8'});
 
-            // this needs 2 helper actions in addition to the agent in place of the action
-            await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${agentDir}/agent-helper-echo.js`)
-            await this.createHelperAction(`${actionName}_wskdebug_completed`, `${agentDir}/agent-helper-echo.js`)
+            } else {
+                console.log("This OpenWhisk does not support action concurrency. Debugging will be a bit slower. Consider using '--ngrok' which might be a faster option.");
 
-            code = fs.readFileSync(`${agentDir}/agent-no-concurrency.js`, {encoding: 'utf8'});
-            // rewrite the code to pass config (we want to avoid fiddling with default params of the action)
-            if (await this.openwhiskSupports("activationListFilterOnlyBasename")) {
-                code = code.replace("const activationListFilterOnlyBasename = false;", "const activationListFilterOnlyBasename = true;");
+                agentName = "polling activation db";
+
+                // this needs 2 helper actions in addition to the agent in place of the action
+                await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${agentDir}/echo.js`)
+                await this.createHelperAction(`${actionName}_wskdebug_completed`, `${agentDir}/echo.js`)
+
+                code = fs.readFileSync(`${agentDir}/agent-activationdb.js`, {encoding: 'utf8'});
+                // rewrite the code to pass config (we want to avoid fiddling with default params of the action)
+                if (await this.openwhiskSupports("activationListFilterOnlyBasename")) {
+                    code = code.replace("const activationListFilterOnlyBasename = false;", "const activationListFilterOnlyBasename = true;");
+                }
             }
         }
 
         const backupName = this.getActionCopyName(actionName);
 
         if (this.argv.verbose) {
-            console.log(`Installing agent in OpenWhisk`);
+            console.log(`Installing agent in OpenWhisk (${agentName})...`);
         }
 
         // create copy
@@ -308,6 +372,64 @@ class Debugger {
         }
     }
 
+    // local http server retrieving forwards from the ngrok agent, running them
+    // as a blocking local invocation and then returning the activation result back
+    ngrokHandler(req, res) {
+        // check authorization against our unique token
+        const authHeader = req.headers.authorization;
+        if (authHeader !== this.ngrokAuth) {
+            res.statusCode = 401;
+            res.end();
+            return;
+        }
+
+        if (req.method === 'POST') {
+            // agent POSTs arguments as json body
+            let body = '';
+            // collect full request body first
+            req.on('data', chunk => {
+                body += chunk.toString();
+            });
+            req.on('end', async () => {
+                try {
+                    const params = JSON.parse(body);
+                    const id = params.$activationId;
+                    delete params.$activationId;
+
+                    if (this.argv.verbose) {
+                        console.log();
+                        console.info(`Activation: ${id}`);
+                        console.log(params);
+                    } else {
+                        console.info(`Activation: ${id}`);
+                    }
+
+                    const startTime = Date.now();
+
+                    const result = await this.invoker.run(params, id);
+
+                    const duration = Date.now() - startTime;
+                    console.info(`Completed activation ${id} in ${duration/1000.0} sec`);
+                    if (this.argv.verbose) {
+                        console.log(result);
+                    }
+
+                    res.statusCode = 200;
+                    res.setHeader("Content-Type", "application/json");
+                    res.end(JSON.stringify(result));
+
+                } catch (e) {
+                    console.error(e);
+                    res.statusCode = 400;
+                    res.end();
+                }
+            });
+        } else {
+            res.statusCode = 404;
+            res.end();
+        }
+    }
+
     registerExitHandler(actionName) {
         // ensure we remove the agent when this app gets terminated
         ['SIGINT', 'SIGTERM'].forEach(signal => {
@@ -345,6 +467,21 @@ class Debugger {
         }
     }
 
+    async actionExists(name) {
+        try {
+            await this.wsk.actions.get(name);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    async deleteActionIfExists(name) {
+        if (await this.actionExists(name)) {
+            await this.wsk.actions.delete(name);
+        }
+    }
+
     async restoreAction(actionName) {
         if (this.agentInstalled) {
             if (this.argv.verbose) {
@@ -357,17 +494,18 @@ class Debugger {
             try {
                 const original = await this.wsk.actions.get(copy);
 
+                // copy the backup (copy) to the regular action
                 await this.wsk.actions.update({
                     name: actionName,
                     action: original
                 });
 
+                // remove the backup
                 await this.wsk.actions.delete(copy);
 
-                if (!this.concurrency) {
-                    await this.wsk.actions.delete(`${actionName}_wskdebug_invoked`);
-                    await this.wsk.actions.delete(`${actionName}_wskdebug_completed`);
-                }
+                // remove any helpers if they exist
+                await this.deleteActionIfExists(`${actionName}_wskdebug_invoked`);
+                await this.deleteActionIfExists(`${actionName}_wskdebug_completed`);
 
             } catch (e) {
                 console.error("Error while restoring original action:", e);

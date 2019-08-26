@@ -89,6 +89,17 @@ yargs
             group: "Action options:",
             describe: "Docker image to use as action container"
         });
+        yargs.option("on-build", {
+            type: "string",
+            group: "Action options:",
+            describe: "Shell command for custom action build step"
+        });
+        yargs.option("build-path", {
+            type: "string",
+            group: "Action options:",
+            describe: "Path to built action, result of --on-build command",
+            coerce: path.resolve // ensure absolute path
+        });
 
         // livereload
         yargs.option("l", {
@@ -119,54 +130,55 @@ yargs
             describe: "Shell command to run upon changes to [source-path]"
         });
 
-        // debugging options
+        // Debugger options
         yargs.option("p", {
             alias: "port",
             type: "number",
-            group: "Debugging options:",
+            group: "Debugger options:",
             describe: "Debug port exposed from container that debugging clients connect to. Defaults to --internal-port if set or standard debug port of the kind. Node.js arguments --inspect and co. can be used too."
         });
         yargs.option("internal-port", {
             type: "number",
-            group: "Debugging options:",
+            group: "Debugger options:",
             describe: "Actual debug port inside the container. Must match port opened by --command. Defaults to standard debug port of kind."
         });
         yargs.option("command", {
             type: "string",
-            group: "Debugging options:",
+            group: "Debugger options:",
             describe: "Custom container command that enables debugging"
         });
         yargs.option("docker-args", {
             type: "string",
-            group: "Debugging options:",
+            group: "Debugger options:",
             describe: "Additional docker run arguments for container. Must be quoted and start with space: 'wskdebug --docker-args \" -e key=var\" myaction'"
-        });
-        yargs.option("agent-timeout", {
-            type: "number",
-            group: "Debugging options:",
-            describe: "Debugging agent timeout (seconds). Default: 5 min"
         });
         yargs.option("on-start", {
             type: "string",
-            group: "Debugging options:",
+            group: "Debugger options:",
             describe: "Shell command to run when debugger is up"
         });
-        yargs.option("on-build", {
-            type: "string",
-            group: "Debugging options:",
-            describe: "Shell command for custom action build step"
-        });
-        yargs.option("build-path", {
-            type: "string",
-            group: "Debugging options:",
-            describe: "Path to built action, result of --on-build command",
-            coerce: path.resolve // ensure absolute path
-        });
+
+        // Agent options
         yargs.option("c", {
             alias: "condition",
             type: "string",
-            group: "Debugging options:",
+            group: "Agent options:",
             describe: "Hit condition to trigger debugger. Javascript expression evaluated against input parameters. Example: 'debug == 'true'"
+        });
+        yargs.option("agent-timeout", {
+            type: "number",
+            group: "Agent options:",
+            describe: "Debugging agent timeout (seconds). Default: 5 min"
+        });
+        yargs.option("ngrok", {
+            type: "boolean",
+            group: "Agent options:",
+            describe: "Use ngrok.com for agent forwarding."
+        });
+        yargs.option("ngrok-region", {
+            type: "string",
+            group: "Agent options:",
+            describe: "Ngrok region to use. Defaults to 'us'."
         });
 
         // nodejs options

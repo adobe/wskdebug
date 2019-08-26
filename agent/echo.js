@@ -14,7 +14,7 @@
 
 // action that simply stores the arguments in the result
 // used for <func>_wskdebug_invoked and <func>_wskdebug_completed helper actions
-// of the agent that does not rely on concurrency (agent-no-concurrency.js)
+// of the agent that does not rely on concurrency (agent-activationdb.js)
 
 // eslint-disable-next-line no-unused-vars
 const main = args => args;

@@ -12,6 +12,10 @@
 
 /* eslint-disable strict */
 
+// agent that forwards invocations to the developer's computer by storing them in the
+// activation db using simple "echo.js" actions (_wskdebug_invoked & _wskdebug_completed),
+// and polling the activation db for those
+
 const openwhisk = require('openwhisk');
 
 const activationListFilterOnlyBasename = false;
@@ -98,6 +102,7 @@ async function waitForCompletion(activationId) {
     );
 }
 
+// Note: this function is duplicated by all agents
 function hit(args, condition) {
     if (condition) {
         console.log("arguments:", args);

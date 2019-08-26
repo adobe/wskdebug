@@ -12,6 +12,11 @@
 
 /* eslint-disable strict */
 
+// agent that forwards invocations to the developer's computer by leveraging a concurrent
+// nodejs action where one container will receive all activations and using queues
+// implemented as global variables of the action so that multiple invocations of this
+// action (agent) can see and wait for each other
+
 const openwhisk = require('openwhisk');
 const os = require("os");
 
@@ -71,6 +76,7 @@ async function waitForCompletion(activationId) {
     return result;
 }
 
+// Note: this function is duplicated by all agents
 function hit(args, condition) {
     if (condition) {
         console.log("arguments:", args);

@@ -26,6 +26,7 @@
         "fs-extra": "^8.0.1",
         "livereload": "^0.8.0",
         "manakin": "^0.5.2",
+        "ngrok": "^3.2.5",
         "openwhisk": "^3.19.0",
         "yargs": "^13.2.4"
     },
