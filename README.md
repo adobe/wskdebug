@@ -397,7 +397,7 @@ The forwarding works by **replacing the original action with a special agent**. 
 
 The fastest option (concurrency) leverages the NodeJS concurrency feature available in some OpenWhisk installations where a single container instance will receive all activations. It uses queues implemented as global variables of the action so that multiple invocations of this action (agent) can see and wait for each other.
 
-The second fastest option - and fastest in case of an OpenWhisk that does not support concurrency - is using [ngrok](ngrok.com) localhost forwarding. It must be manually selected using `--ngrok` on the command line. This works even without an ngrok account.
+The second fastest option - and fastest in case of an OpenWhisk that does not support concurrency - is using [ngrok](https://ngrok.com) localhost forwarding. It must be manually selected using `--ngrok` on the command line. This works even without an ngrok account.
 
 Lastly, there is the "activation DB" agent which simply stores the activation input and result as separate activations (using helper actions named `*_wskdebug_invoked` and `*_wskdebug_completed`) and polls them via `wsk activation list`, both from wskdebug (for new activations) and in the agent itself (waiting for results).
 
