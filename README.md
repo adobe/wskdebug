@@ -296,12 +296,14 @@ Arguments:
   source-path  Path to local action sources, file or folder (optional)            [string]
 
 Action options:
-  -m, --main   Name of action entry point                                         [string]
-  -k, --kind   Action kind override, needed for blackbox images                   [string]
-  -i, --image  Docker image to use as action container                            [string]
+  -m, --main    Name of action entry point                                        [string]
+  -k, --kind    Action kind override, needed for blackbox images                  [string]
+  -i, --image   Docker image to use as action container                           [string]
+  --on-build    Shell command for custom action build step                        [string]
+  --build-path  Path to built action, result of --on-build command                [string]
 
 LiveReload options:
-  -l         Enable browser LiveReload on [source-path]
+  -l         Enable browser LiveReload on [source-path]                          
   --lr-port  Port for browser LiveReload (defaults to 35729)                      [number]
   -P         Invoke action with these parameters on changes to [source-path].
              Argument can be json string or name of json file.                    [string]
@@ -309,7 +311,7 @@ LiveReload options:
              Defaults to <action> if -P is set.                                   [string]
   -r         Shell command to run upon changes to [source-path]                   [string]
 
-Debugging options:
+Debugger options:
   -p, --port       Debug port exposed from container that debugging clients connect to.
                    Defaults to --internal-port if set or standard debug port of the kind.
                    Node.js arguments --inspect and co. can be used too.           [number]
@@ -318,16 +320,19 @@ Debugging options:
   --command        Custom container command that enables debugging                [string]
   --docker-args    Additional docker run arguments for container. Must be quoted and start
                    with space: 'wskdebug --docker-args " -e key=var" myaction'    [string]
-  --agent-timeout  Debugging agent timeout (seconds). Default: 5 min              [number]
   --on-start       Shell command to run when debugger is up                       [string]
-  --on-build       Shell command for custom action build step                     [string]
-  --build-path     Path to built action, result of --on-build command             [string]
+
+Agent options:
   -c, --condition  Hit condition to trigger debugger. Javascript expression evaluated
                    against input parameters. Example: 'debug == 'true'            [string]
+  --agent-timeout  Debugging agent timeout (seconds). Default: 5 min              [number]
+  --ngrok          Use ngrok.com for agent forwarding.                           
+  --ngrok-region   Ngrok region to use. Defaults to 'us'.                         [string]
+
 Options:
-  -v, --verbose  Verbose output. Logs activation parameters and result
-  --version      Show version number
-  -h, --help     Show help
+  -v, --verbose  Verbose output. Logs activation parameters and result           
+  --version      Show version number                                             
+  -h, --help     Show help                                                       
 ```
 
 <a name="troubleshooting"></a>
@@ -388,14 +393,17 @@ wsk action delete myaction_wskdebug_original
 
 Furthermore, the local container can **mount the local source files** and automatically reload them on every invocation. `wskdebug` can also listen for changes to the source files and trigger an automatic reload of a web action or direct invocation of the action or just any shell command, e.g. if you need to make more nuanced curl requests to trigger your API.
 
-The forwarding works by **replacing the original action with a special agent**. This uses the concurrency feature of NodeJS actions to queue incoming activations and pass them on to the polling `wskdebug` client. Once execution on the client side has finished, the result is passed back to the agent which then returns the result to the original activation, which was blocked. Here is where the limits come in: if the invocation is synchronous (blocking=true) or a web action, openwhisk will not wait for more than 1 minute. For asynchronous invocations, it depends on the timeout setting of the action. `wskdebug` sets it to 5 minute by default but it can be controlled via `--agent-timeout` to set it to a feasible maximum.
+The forwarding works by **replacing the original action with a special agent**. There are different [agent variations](agent/), which all achieve the same: catch activations of the action on the OpenWhisk side, pass them on to the local container and finally return the local result back to the original activation.
 
-The debugger works with all normal actions, including web actions. Sequences are
-not directly supported but can be debugged by starting a debugger for each
-action in the sequence see [Nodejs Multiple actions](#nodejs-multiple-actions).
-Compositions itself (not the component actions) are not supported. The solution
-is only based on custom actions and works with any OpenWhisk
-system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
+The fastest option (concurrency) leverages the NodeJS concurrency feature available in some OpenWhisk installations where a single container instance will receive all activations. It uses queues implemented as global variables of the action so that multiple invocations of this action (agent) can see and wait for each other.
+
+The second fastest option - and fastest in case of an OpenWhisk that does not support concurrency - is using [ngrok](ngrok.com) localhost forwarding. It must be manually selected using `--ngrok` on the command line. This works even without an ngrok account.
+
+Lastly, there is the "activation DB" agent which simply stores the activation input and result as separate activations (using helper actions named `*_wskdebug_invoked` and `*_wskdebug_completed`) and polls them via `wsk activation list`, both from wskdebug (for new activations) and in the agent itself (waiting for results).
+
+Inside the agents waiting for the result is where the limits have an effect: if the invocation is synchronous (blocking=true) or a web action, OpenWhisk will not wait for more than 1 minute. For asynchronous invocations, it depends on the timeout setting of the action. `wskdebug` sets it to 5 minute by default but it can be controlled via `--agent-timeout` to set it to a feasible maximum.
+
+The debugger works with all normal actions, including web actions. Sequences are not directly supported but can be debugged by starting a debugger for each action in the sequence see [Nodejs Multiple actions](#nodejs-multiple-actions). Compositions itself (not the component actions) are not supported. The solution is only based on custom actions and works with any OpenWhisk system. `wskdebug` was inspired by the now defunct [wskdb](https://github.com/apache/incubator-openwhisk-debugger).
 
 ![diagram showing wskdebug](resources/wskdebug-architecture.png)
 
