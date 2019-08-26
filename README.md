@@ -1,4 +1,4 @@
-![](https://img.shields.io/badge/cli-wskdebug-brightgreen) [![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Actions Status](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/badge/adobe/wskdebug)](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/results/adobe/wskdebug)
+![](https://img.shields.io/badge/cli-wskdebug-brightgreen) [![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Actions Status](https://github.com/adobe/wskdebug/workflows/CI/badge.svg)](https://github.com/adobe/wskdebug/actions) [![GitHub Actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/adobe/wskdebug/CI)](https://github.com/adobe/wskdebug/actions)
 
 wskdebug
 ========
