@@ -120,7 +120,7 @@ class OpenWhiskInvoker {
 
         // this must run after initial build was kicked off in Debugger.startLiveReload()
         // so that built files are present
-        if (fs.lstatSync(this.sourcePath).isFile()) {
+        if (this.sourcePath && fs.lstatSync(this.sourcePath).isFile()) {
             this.sourceDir = path.dirname(this.sourcePath);
             this.sourceFile = path.basename(this.sourcePath);
         } else {
