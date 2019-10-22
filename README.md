@@ -82,6 +82,7 @@ The action to debug (e.g. `myaction`) must already be deployed.
 + [Unsupported action kinds](#unsupported-action-kinds)
 + [Live reloading](#live-reloading)
 + [Hit condition](#hit-condition)
++ [Custom build step](#custom-build-step)
 + [Help output](#help-output)
 
 <a name="nodejs-visual-studio-code"></a>
@@ -271,6 +272,29 @@ In another example for a web action, let's assume we want to catch all requests 
 If the hit condition is true, the action will be forwarded to the local debug container. If not, the original action (copy) in the OpenWhisk system will be invoked.
 
 Please note that if source mounting is enabled, this will not have an effect on the original action copy that is invoked if the hit condition is not met. This means if condition is met, the latest local code changes will have an effect, but if not, the version of the action before wskdebug was started will be executed.
+
+<a name="custom-build-step"></a>
+### Custom build step
+
+For some projects, the raw source code that developers edit in the IDE goes through a build process before being deployed as OpenWhisk action. To support this, `wskdebug` has these arguments:
+
+* `--on-build`: Shell command for custom action build step
+* `--build-path` Path to built action, result of --on-build command
+
+As a simple example, imagine the build process for an action with source file `action.js` deployed as `myaction` is simply renaming the file and placing it as `index.js` in a `build/` directory:
+
+```
+mkdir build/
+cp action.js build/index.js
+```
+
+Replace the copy/rename here with whatever build step is happening. Make sure source maps are enabled.
+
+Then you would invoke `wskdebug` like this:
+
+```
+wskdebug myaction action.js --on-build "mkdir build/; cp action.js build/index.js" --build-path build/index.js
+```
 
 <a name="help-output"></a>
 ### Help output
