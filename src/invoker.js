@@ -71,7 +71,7 @@ class OpenWhiskInvoker {
         this.wskProps = wskProps;
         this.wsk = wsk;
 
-        this.containerName = `wskdebug-${this.action.name}-${Date.now()}`;
+        this.containerName = this.asContainerName(`wskdebug-${this.action.name}-${Date.now()}`);
     }
 
     async start() {
@@ -329,6 +329,19 @@ class OpenWhiskInvoker {
 
     timeout() {
         return this.action.limits.timeout || OPENWHISK_DEFAULTS.timeout;
+    }
+
+    asContainerName(name) {
+        // docker container names are restricted to [a-zA-Z0-9][a-zA-Z0-9_.-]*
+
+        // 1. replace special characters with dash
+        name = name.replace(/[^a-zA-Z0-9_.-]+/g, '-');
+        // 2. leading character is more limited
+        name = name.replace(/^[^a-zA-Z0-9]+/g, '');
+        // 3. (nice to have) remove trailing special chars
+        name = name.replace(/[^a-zA-Z0-9]+$/g, '');
+
+        return name;
     }
 }
 
