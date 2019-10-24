@@ -198,7 +198,7 @@ yargs
     },
     async argv => {
         // pass hidden node.js arg aliases to port option
-        argv.port = argv.p = argv.inspect;
+        argv.port = argv.inspect || argv.p;
         // more readable internal argument names
         argv.livereload = argv.l;
         argv.livereloadPort = argv.lrPort;
