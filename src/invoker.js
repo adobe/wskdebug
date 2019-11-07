@@ -68,7 +68,7 @@ class OpenWhiskInvoker {
         this.sourceRoot = options.sourceRoot // optional
         // make sure sourceRoot is parent of sourcePath
         if (this.sourceRoot && this.sourcePath && !path.relative(this.sourcePath, this.sourceRoot).startsWith('..')) {
-          throw new Error(`source-root '${this.sourceRoot}' must be a parent directory to the source path '${this.sourcePath}'`)
+          throw new Error(`--source-root '${this.sourceRoot}' must be a parent directory to the source path '${this.sourcePath}'`)
         }
 
         this.main = options.main;
