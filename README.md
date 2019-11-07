@@ -320,11 +320,12 @@ Arguments:
   source-path  Path to local action sources, file or folder (optional)            [string]
 
 Action options:
-  -m, --main    Name of action entry point                                        [string]
-  -k, --kind    Action kind override, needed for blackbox images                  [string]
-  -i, --image   Docker image to use as action container                           [string]
-  --on-build    Shell command for custom action build step                        [string]
-  --build-path  Path to built action, result of --on-build command                [string]
+  -m, --main     Name of action entry point                                       [string]
+  -k, --kind     Action kind override, needed for blackbox images                 [string]
+  -i, --image    Docker image to use as action container                          [string]
+  --on-build     Shell command for custom action build step                       [string]
+  --build-path   Path to built action, result of --on-build command               [string]
+  --source-root  Path to the local source mount root                              [string]
 
 LiveReload options:
   -l         Enable browser LiveReload on [source-path]                          
@@ -356,7 +357,7 @@ Agent options:
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result           
   --version      Show version number                                             
-  -h, --help     Show help                                                       
+  -h, --help     Show help
 ```
 
 <a name="troubleshooting"></a>
