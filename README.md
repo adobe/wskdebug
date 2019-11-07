@@ -273,6 +273,16 @@ If the hit condition is true, the action will be forwarded to the local debug co
 
 Please note that if source mounting is enabled, this will not have an effect on the original action copy that is invoked if the hit condition is not met. This means if condition is met, the latest local code changes will have an effect, but if not, the version of the action before wskdebug was started will be executed.
 
+<a name="source-mount-root"></a>
+### Source mount root
+
+When source mounting is enabled, the default behaviour is to mount the directory of the source path into the
+executing container. The the source mount root can also manually be defined using:
+
+* `--source-root`: Path to the local source mount root
+
+As an example, this might be useful if the action has dependencies living in a parent directory.
+
 <a name="custom-build-step"></a>
 ### Custom build step
 
@@ -495,6 +505,7 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 | `invoker.main` | `string` | name of the `main` entry point (from cli args) |
 | `invoker.sourceFile` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
 | `invoker.sourceDir` | `string` | absolute path to `<source-file>` from the cli args if it's a directory, or the containing directory if it's a file |
+| `invoker.sourceRoot` | `string` | absolute path to `<source-root>` from the cli args |
 | `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
 | `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |
 | `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
