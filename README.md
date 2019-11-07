@@ -277,11 +277,11 @@ Please note that if source mounting is enabled, this will not have an effect on 
 ### Source mount root
 
 When source mounting is enabled, the default behaviour is to mount the directory of the source path into the
-executing container. The the source mount root can also manually be defined using:
+executing container. The source mount root can be manually defined using:
 
 * `--source-root`: Path to the local source mount root
 
-As an example, this might be useful if the action has dependencies living in a parent directory.
+As an example, this might be useful if the action has a dependency living in a parent directory.
 
 <a name="custom-build-step"></a>
 ### Custom build step
