@@ -18,10 +18,6 @@ const path = require('path')
 // path inside docker container where action code is mounted
 const CODE_MOUNT = "/code";
 
-function getMountRoot (invoker) {
-    return invoker.sourceRoot || invoker.sourceDir
-}
-
 module.exports = {
     description: "Node.js V8 inspect debugger on port 9229. Supports source mount",
 
@@ -35,13 +31,12 @@ module.exports = {
 
     // return extra docker arguments such as mounting the source path
     dockerArgs: function(invoker) {
-        const mountRoot = getMountRoot(invoker)
-        if (mountRoot) {
+        if (invoker.sourceRoot) {
             if (!invoker.sourceFile) {
                 throw new Error("[source-path] or --build-path must point to the action javascript source file, it cannot be a folder.");
             }
 
-            return `-v "${mountRoot}:${CODE_MOUNT}"`;
+            return `-v "${invoker.sourceRoot}:${CODE_MOUNT}"`;
         }
     },
 
@@ -55,7 +50,7 @@ module.exports = {
         let code = fs.readFileSync(`${__dirname}/${bridgeSource}`, {encoding: 'utf8'});
 
         code = code.replace("$$main$$",        invoker.main || "main");
-        code = code.replace("$$sourcePath$$", path.join(CODE_MOUNT, path.relative(getMountRoot(invoker), invoker.sourcePath)));
+        code = code.replace("$$sourcePath$$", path.join(CODE_MOUNT, path.relative(invoker.sourceRoot, invoker.sourcePath)));
         code = code.replace("$$sourceFile$$",  invoker.sourceFile);
 
         return {

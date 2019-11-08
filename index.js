@@ -100,12 +100,6 @@ yargs
             describe: "Path to built action, result of --on-build command",
             coerce: path.resolve // ensure absolute path
         });
-        yargs.option("source-root", {
-          type: "string",
-          group: "Action options:",
-          describe: "Path to the local source mount root",
-          coerce: path.resolve // ensure absolute path
-        });
 
         // livereload
         yargs.option("l", {

@@ -276,12 +276,8 @@ Please note that if source mounting is enabled, this will not have an effect on 
 <a name="source-mount-root"></a>
 ### Source mount root
 
-When source mounting is enabled, the default behaviour is to mount the directory of the source path into the
-executing container. The source mount root can be manually defined using:
-
-* `--source-root`: Path to the local source mount root
-
-As an example, this might be useful if the action has a dependency living in a parent directory.
+When source mounting is enabled, the current working directory will be mounted in the executing container. This means
+that your action can have dependencies to any file living under the cwd.
 
 <a name="custom-build-step"></a>
 ### Custom build step
@@ -503,9 +499,10 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `invoker.main` | `string` | name of the `main` entry point (from cli args) |
-| `invoker.sourceFile` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
+| `invoker.sourcePath` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
 | `invoker.sourceDir` | `string` | absolute path to `<source-file>` from the cli args if it's a directory, or the containing directory if it's a file |
-| `invoker.sourceRoot` | `string` | absolute path to `<source-root>` from the cli args |
+| `invoker.sourceFile` | `string` | name of the `<source-file>` from the cli args if it's a file, or empty if it's a directory |
+| `invoker.sourceRoot` | `string` | absolute path to the root of the sources, which usually refers to the cwd from where the cli was run |
 | `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
 | `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |
 | `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
