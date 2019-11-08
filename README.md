@@ -273,19 +273,14 @@ If the hit condition is true, the action will be forwarded to the local debug co
 
 Please note that if source mounting is enabled, this will not have an effect on the original action copy that is invoked if the hit condition is not met. This means if condition is met, the latest local code changes will have an effect, but if not, the version of the action before wskdebug was started will be executed.
 
-<a name="source-mount-root"></a>
-### Source mount root
-
-When source mounting is enabled, the current working directory will be mounted in the executing container. This means
-that your action can have dependencies to any file living under the cwd.
-
 <a name="custom-build-step"></a>
 ### Custom build step
 
 For some projects, the raw source code that developers edit in the IDE goes through a build process before being deployed as OpenWhisk action. To support this, `wskdebug` has these arguments:
 
 * `--on-build`: Shell command for custom action build step
-* `--build-path` Path to built action, result of --on-build command
+* `--build-path`: Path to built action, result of --on-build command
+* `--build-path-root`: Build path mount root, ignored if build-path is not set
 
 As a simple example, imagine the build process for an action with source file `action.js` deployed as `myaction` is simply renaming the file and placing it as `index.js` in a `build/` directory:
 
@@ -301,6 +296,15 @@ Then you would invoke `wskdebug` like this:
 ```
 wskdebug myaction action.js --on-build "mkdir build/; cp action.js build/index.js" --build-path build/index.js
 ```
+
+<a name="source-mount-root"></a>
+### Source mount root
+
+When source mounting is enabled, the default behavior is to mount the current working directory into the executing
+container. This means that your action can have dependencies to any file living under the cwd.
+
+If `--build-path` was specified the build file's directory is mounted instead of cwd, alternatively you can specify
+another mount root location with `--build-path-root`.
 
 <a name="help-output"></a>
 ### Help output
@@ -326,12 +330,12 @@ Arguments:
   source-path  Path to local action sources, file or folder (optional)            [string]
 
 Action options:
-  -m, --main     Name of action entry point                                       [string]
-  -k, --kind     Action kind override, needed for blackbox images                 [string]
-  -i, --image    Docker image to use as action container                          [string]
-  --on-build     Shell command for custom action build step                       [string]
-  --build-path   Path to built action, result of --on-build command               [string]
-  --source-root  Path to the local source mount root                              [string]
+  -m, --main         Name of action entry point                                   [string]
+  -k, --kind         Action kind override, needed for blackbox images             [string]
+  -i, --image        Docker image to use as action container                      [string]
+  --on-build         Shell command for custom action build step                   [string]
+  --build-path       Path to built action, result of --on-build command           [string]
+  --build-path-root  Build path mount root, ignored if build-path is not set      [string]
 
 LiveReload options:
   -l         Enable browser LiveReload on [source-path]                          
@@ -502,7 +506,7 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 | `invoker.sourcePath` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
 | `invoker.sourceDir` | `string` | absolute path to `<source-file>` from the cli args if it's a directory, or the containing directory if it's a file |
 | `invoker.sourceFile` | `string` | name of the `<source-file>` from the cli args if it's a file, or empty if it's a directory |
-| `invoker.sourceRoot` | `string` | absolute path to the root of the sources, which usually refers to the cwd from where the cli was run |
+| `invoker.sourceRoot` | `string` | absolute path to the root of the sources, which usually refers to the cwd from where the cli was run unless `invoker.hasBuildPath` is set to true, in which case it takes the value of `invoker.buildPathRoot` or `invoker.sourceDir` if `invoker.buildPathRoot` is undefined |
 | `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
 | `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |
 | `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
@@ -517,4 +521,3 @@ Contributions are welcomed! Read the [Contributing Guide](.github/CONTRIBUTING.m
 ## Licensing
 
 This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
-

@@ -100,6 +100,12 @@ yargs
             describe: "Path to built action, result of --on-build command",
             coerce: path.resolve // ensure absolute path
         });
+        yargs.option("build-path-root", {
+          type: "string",
+          group: "Action options:",
+          describe: "Build path mount root, ignored if build-path is not set",
+          coerce: path.resolve // ensure absolute path
+      });
 
         // livereload
         yargs.option("l", {

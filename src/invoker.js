@@ -65,7 +65,9 @@ class OpenWhiskInvoker {
 
         // the build path can be separate, if not, same as the source/watch path
         this.sourcePath = options.buildPath || options.sourcePath;
-        this.sourceRoot = this.sourcePath && process.cwd()
+        this.buildPathRoot = options.buildPathRoot;
+        this.hasBuildPath = Boolean(options.buildPath);
+        this.cwd = process.cwd(); // fix cwd in case it changes
 
         this.main = options.main;
 
@@ -128,6 +130,8 @@ class OpenWhiskInvoker {
             this.sourceDir = this.sourcePath;
             this.sourceFile = "";
         }
+        // sourceRoot is cwd unless a build path has been defined in which case it is buildPathRoot or buildPath directory
+        this.sourceRoot = this.hasBuildPath && (this.buildPathRoot || this.sourceDir) || this.cwd
 
         // kind and image
 
