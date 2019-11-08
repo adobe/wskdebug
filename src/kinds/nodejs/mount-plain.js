@@ -27,7 +27,7 @@ function load(path) {
     const code = fs.readFileSync(path, {encoding: 'utf8'});
 
     // eslint-disable-next-line no-eval
-    const fn = eval('(function(){' + code + '; return ' + mainFn + '})()\n //@ sourceURL=' + path);
+    const fn = eval('(function(){' + code + '\n; return ' + mainFn + '})()\n //@ sourceURL=' + path);
 
     if (typeof fn !== 'function') {
         throw `'${mainFn}' is not a function in '${sourceFile}'. Specify the right function in wskdebug using --main.`;
