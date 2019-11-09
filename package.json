@@ -19,7 +19,7 @@
     },
     "scripts": {
         "pretest": "eslint ./",
-        "test": "nyc --reporter=text mocha --reporter mocha-multi-reporters --reporter-options configFile=test/multireporterconfig.json --file test/logfile.setup.js test",
+        "test": "nyc --reporter=text mocha --reporter mocha-multi-reporters --reporter-options configFile=test/multireporterconfig.json --file test/logfile.setup.js test/**/*.test.js",
         "report-coverage": "nyc report --reporter=json && codecov -f coverage/coverage-final.json"
     },
     "dependencies": {

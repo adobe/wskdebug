@@ -73,11 +73,24 @@ class Debugger {
         this.invoker = new OpenWhiskInvoker(this.action, action, this.argv, this.wskProps, this.wsk);
 
         try {
-            // start live reload (if requested)
-            await this.startSourceWatching();
+            // run build initially (would be required by starting container)
+            if (this.argv.onBuild) {
+                console.info("=> Build:", this.argv.onBuild);
+                spawnSync(this.argv.onBuild, {shell: true, stdio: "inherit"});
+            }
 
-            // start container & agent
-            await this.invoker.start();
+            // start container - get it up fast for VSCode to connect within its 10 seconds timeout
+            await this.invoker.startContainer();
+
+            // get code and /init local container
+            if (this.argv.verbose) {
+                console.log(`Fetching action code from OpenWhisk: ${this.action}`);
+            }
+            const actionWithCode = await this.wsk.actions.get(this.action);
+            action.exec = actionWithCode.exec;
+            await this.invoker.init(actionWithCode);
+
+            // setup agent in openwhisk
 
             // user can switch between agents (ngrok or not), hence we need to restore
             // (better would be to track the agent + its version and avoid a restore, but that's TBD)
@@ -91,6 +104,10 @@ class Debugger {
                 console.log("On start:", this.argv.onStart);
                 spawnSync(this.argv.onStart, {shell: true, stdio: "inherit"});
             }
+
+            // start live reload (if requested)
+            await this.startSourceWatching();
+
             console.log();
             console.info(`Action     : ${this.action}`);
             this.invoker.logInfo();
@@ -98,8 +115,7 @@ class Debugger {
                 console.info(`Condition  : ${this.argv.condition}`);
             }
             console.log();
-            console.info(`Ready, waiting for activations`);
-            console.info(`Use CTRL+C to exit`);
+            console.info(`Ready, waiting for activations! Use CTRL+C to exit`);
 
             this.ready = true;
 
@@ -237,9 +253,12 @@ class Debugger {
         }
     }
 
-    async getWskAction(actionName) {
+    async getWskActionWithoutCode(actionName) {
+        if (this.argv.verbose) {
+            console.log(`Getting action metadata from OpenWhisk: ${actionName}`);
+        }
         try {
-            return await this.wsk.actions.get(actionName);
+            return await this.wsk.actions.get({name: actionName, code:false});
         } catch (e) {
             if (e.statusCode === 404) {
                 return null;
@@ -251,7 +270,7 @@ class Debugger {
 
     async actionExists(name) {
         try {
-            await this.wsk.actions.get(name);
+            await this.wsk.actions.get({name: name, code: false});
             return true;
         } catch (e) {
             return false;
@@ -276,7 +295,7 @@ class Debugger {
     }
 
     async getAction(actionName) {
-        let action = await this.getWskAction(actionName);
+        let action = await this.getWskActionWithoutCode(actionName);
         if (action === null) {
             throw new Error(`Action not found: ${actionName}`);
         }
@@ -767,13 +786,6 @@ class Debugger {
              || this.argv.invokeParams
              || this.argv.invokeAction )
         ) {
-
-            // run build initially
-            if (this.argv.onBuild) {
-                console.info("=> Build:", this.argv.onBuild);
-                spawnSync(this.argv.onBuild, {shell: true, stdio: "inherit"});
-            }
-
             this.liveReloadServer = livereload.createServer({
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,

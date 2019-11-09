@@ -100,11 +100,11 @@ function agentExitResponse() {
 
 function mockAction(name, code, binary=false) {
     // reading action without code
-    // nockExpected
-    //     .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`)
-    //     .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-    //     .query({"code":"false"})
-    //     .reply(200, actionDescription(name, binary));
+    openwhisk
+        .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`)
+        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
+        .query({"code":"false"})
+        .reply(200, nodejsActionDescription(name, binary));
 
     // with code
     const action = nodejsActionDescription(name, binary);
