@@ -112,8 +112,41 @@ describe('nodejs', function() {
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
             {},
-            { msg: "one/two" },
+            { msg: "CORRECT/RESULT" },
             true // binary = true for nodejs means zip action with commonjs (require) loading
+        );
+
+        process.chdir("test/nodejs/commonjs-flat");
+        await wskdebug(`myaction action.js -p ${test.port}`);
+
+        test.assertAllNocksInvoked();
+    });
+
+    it("should mount local sources with plain js reported as binary", async function() {
+        test.mockActionAndInvocation(
+            "myaction",
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT" },
+            true // binary
+        );
+
+        process.chdir("test/nodejs/plain-flat");
+        await wskdebug(`myaction action.js -p ${test.port}`);
+
+        test.assertAllNocksInvoked();
+    });
+
+    it("should mount local sources with commonjs reported as non binary", async function() {
+        this.timeout(10000);
+        test.mockActionAndInvocation(
+            "myaction",
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT/RESULT" },
+            false // binary
         );
 
         process.chdir("test/nodejs/commonjs-flat");

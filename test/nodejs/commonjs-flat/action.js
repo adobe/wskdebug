@@ -3,5 +3,5 @@
 const path = require('path');
 
 exports.main = function() {
-    return { msg: path.join("one", "two") };
+    return { msg: path.join("CORRECT", "RESULT") };
 }
