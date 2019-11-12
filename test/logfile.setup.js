@@ -76,7 +76,6 @@ before(function() {
     });
 
     fsExtra.mkdirsSync(path.dirname(TEST_LOG_FILE));
-    fsExtra.createFile(TEST_LOG_FILE); // fix for linux?
     logFile = fileOpen(TEST_LOG_FILE);
     // make available globally for e.g. child process output
     global.mochaLogFile = logFile;
