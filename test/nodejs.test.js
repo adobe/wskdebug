@@ -47,7 +47,7 @@ describe('node.js', () => {
         await test.wskdebug(`${ACTION_NAME} -p 12345`);
 
         test.assertAllNocksInvoked();
-    }).timeout(5000)
+    }).timeout(30000)
 
     it("should debug an action without local sources2", async () => {
         const ACTION_NAME = "myaction";
@@ -63,5 +63,5 @@ describe('node.js', () => {
         await test.wskdebug(`${ACTION_NAME} -p 12345`);
 
         test.assertAllNocksInvoked();
-    }).timeout(5000)
+    }).timeout(30000)
 });
