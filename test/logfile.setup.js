@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 /**
  * ADOBE CONFIDENTIAL
  * ___________________
@@ -17,6 +16,8 @@
  */
 
 'use strict';
+
+/* eslint-env mocha */
 
 // redirect console log output into a log file during unit tests to keep stdout clean
 // - log file: build/mocha.test.log
@@ -75,6 +76,7 @@ before(function() {
     });
 
     fsExtra.mkdirsSync(path.dirname(TEST_LOG_FILE));
+    fsExtra.createFile(TEST_LOG_FILE); // fix for linux?
     logFile = fileOpen(TEST_LOG_FILE);
     // make available globally for e.g. child process output
     global.mochaLogFile = logFile;
