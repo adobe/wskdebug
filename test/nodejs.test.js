@@ -43,7 +43,8 @@ describe('node.js', () => {
         test.mockInvocation(ACTION_NAME, "1234", { input: "test-input" });
         test.expectInvocationResult(ACTION_NAME, "1234", { msg: "CORRECT", input: "test-input" });
 
-        await test.wskdebug(ACTION_NAME);
+        // using debug port 12345 as default makes problems in Github Actions
+        await test.wskdebug(`${ACTION_NAME} -p 12345`);
 
         test.assertAllNocksInvoked();
     }).timeout(5000)
@@ -58,7 +59,8 @@ describe('node.js', () => {
         test.mockInvocation(ACTION_NAME, "5555", { input: "different" });
         test.expectInvocationResult(ACTION_NAME, "5555", { msg: "CORRECT", input: "different" });
 
-        await test.wskdebug(ACTION_NAME);
+        // using debug port 12345 as default makes problems in Github Actions
+        await test.wskdebug(`${ACTION_NAME} -p 12345`);
 
         test.assertAllNocksInvoked();
     }).timeout(5000)
