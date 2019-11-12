@@ -135,6 +135,9 @@ class Debugger {
                 // main blocking loop (agent concurrent + non-concurrent)
                 while (true) {
                     const activation = await this.waitForActivations(actionName);
+                    if (!activation) {
+                        return;
+                    }
 
                     const id = activation.$activationId;
                     delete activation.$activationId;
@@ -446,7 +449,7 @@ class Debugger {
         if (this.ready) {
             console.log();
             console.log();
-            process.stdout.write("Shutting down...");
+            console.log("Shutting down...");
         }
 
         try {
@@ -602,9 +605,17 @@ class Debugger {
                 }
 
             } catch(e) {
-                // special error code 42 from agent=> retry
-                // otherwise log error and abort
-                if (this.getActivationError(e).code !== 42) {
+                // look for special error codes from agent
+                const errorCode = this.getActivationError(e).code;
+                // 42 => retry
+                if (errorCode === 42) {
+                    // do nothing
+                } else if (errorCode === 43) {
+                    // 43 => graceful shutdown (for unit tests)
+                    console.log("Graceful shutdown requested by agent (only for unit tests)");
+                    return null;
+                } else {
+                    // otherwise log error and abort
                     console.error();
                     console.error("Unexpected error while polling agent for activation:");
                     console.dir(e, { depth: null });

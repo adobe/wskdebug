@@ -234,7 +234,13 @@ class OpenWhiskInvoker {
 
         this.containerRunning = true;
 
-        spawn("docker", ["logs", "-t", "-f", this.name()], {stdio: "inherit"});
+        spawn("docker", ["logs", "-t", "-f", this.name()], {
+            stdio: [
+                "inherit", // stdin
+                global.mochaLogFile || "inherit", // stdout
+                global.mochaLogFile || "inherit"  // stderr
+            ]
+        });
     }
 
     async logInfo() {
