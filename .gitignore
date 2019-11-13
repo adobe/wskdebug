@@ -13,3 +13,4 @@ jspm_packages
 .nyc_output
 coverage
 build
+coverage.lcov
