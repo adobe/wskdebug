@@ -15,15 +15,13 @@
  * from Adobe.
  */
 
-/* eslint-env mocha */
-/* eslint mocha/no-mocha-arrows: "off" */
-
 'use strict';
 
 const assert = require('assert');
 const nock = require('nock');
 const fs = require('fs');
-const shellParse = require('shell-quote').parse;
+const { execSync } = require('child_process');
+const path = require('path');
 
 const FAKE_OPENWHISK_SERVER = "https://example.com";
 const FAKE_OPENWHISK_AUTH = "c3VwZXItc2VjcmV0LWtleQ==";
@@ -33,20 +31,21 @@ const WSKDEBUG_BACKUP_ACTION_SUFFIX = "_wskdebug_original";
 
 let nockExpected;
 
-async function wskdebug(args) {
-    console.error(`> wskdebug ${args}`);
-    process.argv = ["node", "wskdebug", /* "-v", */ ...shellParse(args)];
-    delete require.cache[require.resolve('../index')];
-    return require('../index');
+function isDockerInstalled() {
+    try {
+        execSync("docker info", {stdio: 'ignore'});
+    } catch (e) {
+        throw new Error("Docker not available or running on local system. These unit tests require it.")
+    }
 }
 
 function beforeEach() {
-    process.env.WSK_CONFIG_FILE = "test/wskprops";
-    // nock.recorder.rec({
-    //     enable_reqheaders_recording: true
-    // });
-    mockOpenwhisk();
+    process.env.WSK_CONFIG_FILE = path.join(process.cwd(), "test/wskprops");
+    // nock.recorder.rec({ enable_reqheaders_recording: true });
+    mockOpenwhiskSwagger();
     nockExpected = nock(FAKE_OPENWHISK_SERVER);
+    // nockExpected.log(console.log);
+
 }
 
 function afterEach() {
@@ -119,6 +118,14 @@ function expectInstallAgent(name) {
 }
 
 function mockInvocation(name, activationId, params) {
+    if (typeof activationId === "object") {
+        params = activationId;
+        activationId = Date.now();
+    } else if (!activationId) {
+        activationId = Date.now();
+    }
+    params = params || {};
+
     nockExpected
         .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
             body => body.$waitForActivation === true
@@ -130,6 +137,8 @@ function mockInvocation(name, activationId, params) {
                 result: Object.assign(params, { $activationId: activationId })
             }
         });
+
+    return activationId;
 }
 
 function expectInvocationResult(name, activationId, result) {
@@ -171,6 +180,14 @@ function expectInvocationResult(name, activationId, result) {
         });
 }
 
+function mockOpenwhisk(action, code, params, expectedResult) {
+    mockOpenwhiskAction(action, code);
+    expectActionBackup(action, code);
+    expectInstallAgent(action);
+    const activationId = mockInvocation(action, params);
+    expectInvocationResult(action, activationId, expectedResult);
+}
+
 // --------------------------------------------< internal >---------------
 
 function actionDescription(name) {
@@ -197,7 +214,7 @@ function actionDescription(name) {
     };
 }
 
-function mockOpenwhisk() {
+function mockOpenwhiskSwagger() {
     // mock swagger api response
     nock(FAKE_OPENWHISK_SERVER)
         .get('/')
@@ -290,13 +307,16 @@ function mockOpenwhisk() {
 // --------------------------------------------< exports >---------------
 
 module.exports = {
-    wskdebug,
+    isDockerInstalled,
+    beforeEach,
+    afterEach,
+    assertAllNocksInvoked,
+    // mock
+    mockOpenwhisk,
+    // advanced
     mockOpenwhiskAction,
     expectActionBackup,
     expectInstallAgent,
     mockInvocation,
     expectInvocationResult,
-    beforeEach,
-    afterEach,
-    assertAllNocksInvoked
 }

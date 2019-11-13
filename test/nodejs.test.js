@@ -20,48 +20,69 @@
 
 'use strict';
 
-const test = require('./test');
+// tests for node.js debugging
 
-// const assert = require('assert');
+// here is how most tests are setup:
+// - requests to openwhisk and the agent are mocked using nock
+// - docker is required and the containers actually run
+
+const wskdebug = require('../index');
+const test = require('./test');
+const getPort = require('get-port');
 
 describe('node.js', () => {
-    beforeEach(() => {
+    before(() => {
+        test.isDockerInstalled();
+    });
+
+    beforeEach(async () => {
         test.beforeEach();
+        this.cwd = process.cwd();
+        this.port = await getPort(9229);
+        console.log("[test] free port:", this.port);
     });
 
     afterEach(() => {
         test.afterEach();
+        console.log("chdir back to", this.cwd);
+        process.chdir(this.cwd);
     });
 
-    it("should debug an action without local sources", async () => {
-        const ACTION_NAME = "myaction";
-        const CODE = "function main(params) { return { msg: 'CORRECT', input: params.input } }";
-
-        test.mockOpenwhiskAction(ACTION_NAME, CODE);
-        test.expectActionBackup(ACTION_NAME, CODE);
-        test.expectInstallAgent(ACTION_NAME);
-        test.mockInvocation(ACTION_NAME, "1234", { input: "test-input" });
-        test.expectInvocationResult(ACTION_NAME, "1234", { msg: "CORRECT", input: "test-input" });
-
-        // using debug port 12345 as default makes problems in Github Actions
-        await test.wskdebug(`${ACTION_NAME} -p 12345`);
-
-        test.assertAllNocksInvoked();
-    }).timeout(30000)
-
-    it("should debug an action without local sources2", async () => {
-        const ACTION_NAME = "myaction";
-        const CODE = "function main(params) { return { msg: 'CORRECT', input: params.input } }";
-
-        test.mockOpenwhiskAction(ACTION_NAME, CODE);
-        test.expectActionBackup(ACTION_NAME, CODE);
-        test.expectInstallAgent(ACTION_NAME);
-        test.mockInvocation(ACTION_NAME, "5555", { input: "different" });
-        test.expectInvocationResult(ACTION_NAME, "5555", { msg: "CORRECT", input: "different" });
+    it("should run an action without local sources", async () => {
+        test.mockOpenwhisk(
+            "myaction",
+            `function main(params) {
+                return {
+                    msg: 'CORRECT',
+                    input: params.input
+                }
+            }`,
+            { input: "test-input" },
+            { msg: "CORRECT", input: "test-input" }
+        );
 
         // using debug port 12345 as default makes problems in Github Actions
-        await test.wskdebug(`${ACTION_NAME} -p 12345`);
+        await wskdebug(`myaction -p ${this.port}`);
 
         test.assertAllNocksInvoked();
-    }).timeout(30000)
+    }).timeout(30000);
+
+    it("should run an action with local sources - plain js, flat source structure", async () => {
+        test.mockOpenwhisk(
+            "myaction",
+            `function main(params) {
+                return {
+                    msg: 'WRONG' // should not use this if we specify local sources which return different
+                };
+            }`,
+            {},
+            { msg: "CORRECT" }
+        );
+
+        process.chdir("test/plain-flat");
+        // using debug port 12345 as default makes problems in Github Actions
+        await wskdebug(`myaction action.js -p ${this.port}`);
+
+        test.assertAllNocksInvoked();
+    }).timeout(30000);
 });

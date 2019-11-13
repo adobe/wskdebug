@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /*
  Copyright 2019 Adobe. All rights reserved.
  This file is licensed to you under the Apache License, Version 2.0 (the "License");
@@ -19,9 +17,29 @@ const Debugger = require("./src/debugger");
 const path = require("path");
 const fs = require("fs");
 
-// colorful console.error() and co
-if (!console._logToFile) {
-    require('manakin').global;
+function enableConsoleColors() {
+    // colorful console.error() and co
+    let originalConsole = null;
+    if (!console._logToFile) {
+        originalConsole = {
+            log: console.log,
+            error: console.error,
+            info: console.info,
+            debug: console.debug
+        };
+        // overwrites console.log and co
+        require('manakin').global;
+    }
+    return originalConsole;
+}
+
+function resetConsoleColors(originalConsole) {
+    if (originalConsole) {
+        console.log = originalConsole.log;
+        console.error = originalConsole.error;
+        console.info = originalConsole.info;
+        console.debug = originalConsole.debug;
+    }
 }
 
 function getSupportedKinds() {
@@ -37,11 +55,148 @@ function getSupportedKinds() {
     return kinds;
 }
 
-function parseCliArguments() {
+function yargsOptions(yargs) {
+    yargs.positional('action', {
+        describe: 'Name of action to debug',
+        type: 'string'
+    });
+    yargs.positional('source-path', {
+        describe: 'Path to local action sources, file or folder (optional)',
+        type: 'string',
+        coerce: path.resolve // ensure absolute path
+    });
+
+    // action options
+    yargs.option("m", {
+        alias: "main",
+        type: "string",
+        group: "Action options:",
+        describe: "Name of action entry point"
+    });
+    yargs.option("k", {
+        alias: "kind",
+        type: "string",
+        group: "Action options:",
+        describe: "Action kind override, needed for blackbox images"
+    });
+    yargs.option("i", {
+        alias: "image",
+        type: "string",
+        group: "Action options:",
+        describe: "Docker image to use as action container"
+    });
+    yargs.option("on-build", {
+        type: "string",
+        group: "Action options:",
+        describe: "Shell command for custom action build step"
+    });
+    yargs.option("build-path", {
+        type: "string",
+        group: "Action options:",
+        describe: "Path to built action, result of --on-build command",
+        coerce: path.resolve // ensure absolute path
+    });
+
+    // livereload
+    yargs.option("l", {
+        type: "boolean",
+        implies: "source-path",
+        group: "LiveReload options:",
+        describe: "Enable browser LiveReload on [source-path]"
+    });
+    yargs.option("lr-port", {
+        type: "number",
+        implies: "l",
+        group: "LiveReload options:",
+        describe: "Port for browser LiveReload (defaults to 35729)"
+    });
+    yargs.option("P", {
+        type: "string",
+        group: "LiveReload options:",
+        describe: "Invoke action with these parameters on changes to [source-path].\nArgument can be json string or name of json file."
+    });
+    yargs.option("a", {
+        type: "string",
+        group: "LiveReload options:",
+        describe: "Name of custom action to invoke upon changes to [source-path].\nDefaults to <action> if -P is set."
+    });
+    yargs.option("r", {
+        type: "string",
+        group: "LiveReload options:",
+        describe: "Shell command to run upon changes to [source-path]"
+    });
+
+    // Debugger options
+    yargs.option("p", {
+        alias: "port",
+        type: "number",
+        group: "Debugger options:",
+        describe: "Debug port exposed from container that debugging clients connect to. Defaults to --internal-port if set or standard debug port of the kind. Node.js arguments --inspect and co. can be used too."
+    });
+    yargs.option("internal-port", {
+        type: "number",
+        group: "Debugger options:",
+        describe: "Actual debug port inside the container. Must match port opened by --command. Defaults to standard debug port of kind."
+    });
+    yargs.option("command", {
+        type: "string",
+        group: "Debugger options:",
+        describe: "Custom container command that enables debugging"
+    });
+    yargs.option("docker-args", {
+        type: "string",
+        group: "Debugger options:",
+        describe: "Additional docker run arguments for container. Must be quoted and start with space: 'wskdebug --docker-args \" -e key=var\" myaction'"
+    });
+    yargs.option("on-start", {
+        type: "string",
+        group: "Debugger options:",
+        describe: "Shell command to run when debugger is up"
+    });
+
+    // Agent options
+    yargs.option("c", {
+        alias: "condition",
+        type: "string",
+        group: "Agent options:",
+        describe: "Hit condition to trigger debugger. Javascript expression evaluated against input parameters. Example: 'debug == 'true'"
+    });
+    yargs.option("agent-timeout", {
+        type: "number",
+        group: "Agent options:",
+        describe: "Debugging agent timeout (seconds). Default: 5 min"
+    });
+    yargs.option("ngrok", {
+        type: "boolean",
+        group: "Agent options:",
+        describe: "Use ngrok.com for agent forwarding."
+    });
+    yargs.option("ngrok-region", {
+        type: "string",
+        group: "Agent options:",
+        describe: "Ngrok region to use. Defaults to 'us'."
+    });
+
+    // nodejs options
+    yargs.option("inspect", {
+        alias: ["inspect-brk", "inspect-port", "debug", "debug-brk", "debug-port"],
+        hidden: true,
+        type: "number"
+    });
+
+    // general options
+    yargs.option("v", {
+        alias: "verbose",
+        type: "boolean",
+        describe: "Verbose output. Logs activation parameters and result"
+    });
+    yargs.version();
+}
+
+function getYargsParser() {
     return yargs
         .help()
         .alias("h", "help")
-        .showHelpOnFail(true)
         .updateStrings({
             'Positionals:': 'Arguments:',
             'Not enough non-option arguments: got %s, need at least %s': "Error: Missing argument <action> (%s/%s)"
@@ -62,149 +217,11 @@ function parseCliArguments() {
             Supported kinds:
             - ${getSupportedKinds().join("\n")}
             `,
-            yargs => {
-                yargs.positional('action', {
-                    describe: 'Name of action to debug',
-                    type: 'string'
-                });
-                yargs.positional('source-path', {
-                    describe: 'Path to local action sources, file or folder (optional)',
-                    type: 'string',
-                    coerce: path.resolve // ensure absolute path
-                });
-
-                // action options
-                yargs.option("m", {
-                    alias: "main",
-                    type: "string",
-                    group: "Action options:",
-                    describe: "Name of action entry point"
-                });
-                yargs.option("k", {
-                    alias: "kind",
-                    type: "string",
-                    group: "Action options:",
-                    describe: "Action kind override, needed for blackbox images"
-                });
-                yargs.option("i", {
-                    alias: "image",
-                    type: "string",
-                    group: "Action options:",
-                    describe: "Docker image to use as action container"
-                });
-                yargs.option("on-build", {
-                    type: "string",
-                    group: "Action options:",
-                    describe: "Shell command for custom action build step"
-                });
-                yargs.option("build-path", {
-                    type: "string",
-                    group: "Action options:",
-                    describe: "Path to built action, result of --on-build command",
-                    coerce: path.resolve // ensure absolute path
-                });
-
-                // livereload
-                yargs.option("l", {
-                    type: "boolean",
-                    implies: "source-path",
-                    group: "LiveReload options:",
-                    describe: "Enable browser LiveReload on [source-path]"
-                });
-                yargs.option("lr-port", {
-                    type: "number",
-                    implies: "l",
-                    group: "LiveReload options:",
-                    describe: "Port for browser LiveReload (defaults to 35729)"
-                });
-                yargs.option("P", {
-                    type: "string",
-                    group: "LiveReload options:",
-                    describe: "Invoke action with these parameters on changes to [source-path].\nArgument can be json string or name of json file."
-                });
-                yargs.option("a", {
-                    type: "string",
-                    group: "LiveReload options:",
-                    describe: "Name of custom action to invoke upon changes to [source-path].\nDefaults to <action> if -P is set."
-                });
-                yargs.option("r", {
-                    type: "string",
-                    group: "LiveReload options:",
-                    describe: "Shell command to run upon changes to [source-path]"
-                });
-
-                // Debugger options
-                yargs.option("p", {
-                    alias: "port",
-                    type: "number",
-                    group: "Debugger options:",
-                    describe: "Debug port exposed from container that debugging clients connect to. Defaults to --internal-port if set or standard debug port of the kind. Node.js arguments --inspect and co. can be used too."
-                });
-                yargs.option("internal-port", {
-                    type: "number",
-                    group: "Debugger options:",
-                    describe: "Actual debug port inside the container. Must match port opened by --command. Defaults to standard debug port of kind."
-                });
-                yargs.option("command", {
-                    type: "string",
-                    group: "Debugger options:",
-                    describe: "Custom container command that enables debugging"
-                });
-                yargs.option("docker-args", {
-                    type: "string",
-                    group: "Debugger options:",
-                    describe: "Additional docker run arguments for container. Must be quoted and start with space: 'wskdebug --docker-args \" -e key=var\" myaction'"
-                });
-                yargs.option("on-start", {
-                    type: "string",
-                    group: "Debugger options:",
-                    describe: "Shell command to run when debugger is up"
-                });
-
-                // Agent options
-                yargs.option("c", {
-                    alias: "condition",
-                    type: "string",
-                    group: "Agent options:",
-                    describe: "Hit condition to trigger debugger. Javascript expression evaluated against input parameters. Example: 'debug == 'true'"
-                });
-                yargs.option("agent-timeout", {
-                    type: "number",
-                    group: "Agent options:",
-                    describe: "Debugging agent timeout (seconds). Default: 5 min"
-                });
-                yargs.option("ngrok", {
-                    type: "boolean",
-                    group: "Agent options:",
-                    describe: "Use ngrok.com for agent forwarding."
-                });
-                yargs.option("ngrok-region", {
-                    type: "string",
-                    group: "Agent options:",
-                    describe: "Ngrok region to use. Defaults to 'us'."
-                });
-
-                // nodejs options
-                yargs.option("inspect", {
-                    alias: ["inspect-brk", "inspect-port", "debug", "debug-brk", "debug-port"],
-                    hidden: true,
-                    type: "number"
-                });
-
-                // general options
-                yargs.option("v", {
-                    alias: "verbose",
-                    type: "boolean",
-                    describe: "Verbose output. Logs activation parameters and result"
-                });
-                yargs.version();
-            }
-        )
-        .argv;
+            yargsOptions
+        );
 }
 
-// argv are the arguments parsed by yargs
-async function runWskdebug(argv) {
+function normalizeArgs(argv) {
     // pass hidden node.js arg aliases to port option
     argv.port = argv.inspect || argv.p;
     // more readable internal argument names
@@ -213,19 +230,51 @@ async function runWskdebug(argv) {
     argv.invokeParams = argv.P;
     argv.invokeAction = argv.a;
     argv.onChange = argv.r;
+}
+
+function printErrorAndExit(err, argv) {
+    console.log();
+    if (argv.verbose) {
+        console.error(err);
+    } else {
+        console.error("Error:", err.message);
+    }
+    process.exit(1);
+}
+
+async function wskdebug(args, isCommandLine) {
+    const originalConsole = enableConsoleColors();
 
     try {
-        await new Debugger(argv).run();
-    } catch (e) {
-        console.log();
-        if (argv.verbose) {
-            console.error(e);
-        } else {
-            console.error("Error:", e.message);
+        const parser = getYargsParser(args);
+
+        // if cli mode, we want to exit the process, otherwise throw an error
+        parser.showHelpOnFail(isCommandLine);
+        parser.exitProcess(isCommandLine);
+
+        const argv = parser.parse(args);
+        normalizeArgs(argv);
+
+        if (argv.help) {
+            // do nothing
+            return;
         }
-        // yargs.exit(1);
+
+        try {
+            await new Debugger(argv).run();
+
+        } catch (e) {
+            if (isCommandLine) {
+                printErrorAndExit(e, argv);
+            } else {
+                throw e;
+            }
+        }
+
+    } finally {
+        resetConsoleColors(originalConsole);
     }
 }
 
 // exporting the resulting promise for unit tests
-module.exports = runWskdebug(parseCliArguments());
+module.exports = wskdebug;
