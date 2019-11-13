@@ -60,25 +60,26 @@ function assertAllNocksInvoked() {
     );
 }
 
-function mockOpenwhiskAction(name, code) {
-    // without code
+function mockOpenwhiskAction(name, code, binary=false) {
+    // reading action without code
     // nockExpected
     //     .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`)
     //     .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
     //     .query({"code":"false"})
-    //     .reply(200, actionDescription(name));
+    //     .reply(200, actionDescription(name, binary));
 
     // with code
-    const action = actionDescription(name);
+    const action = actionDescription(name, binary);
     action.exec.code = code;
 
+    // reading action with code
     nockExpected
         .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200, action);
 }
 
-function expectActionBackup(name, code) {
+function expectActionBackup(name, code, binary=false) {
     const backupName = name + WSKDEBUG_BACKUP_ACTION_SUFFIX;
 
     // wskdebug creating the backup action
@@ -86,21 +87,25 @@ function expectActionBackup(name, code) {
         .put(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .query({"overwrite":"true"})
-        .reply(200, actionDescription(backupName));
+        .reply(200, actionDescription(backupName, binary));
 
     // reading it later on restore
     nockExpected
         .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .reply(200, Object.assign(actionDescription(backupName), { exec: { code } }));
+        .reply(200, Object.assign(actionDescription(backupName, binary), { exec: { code } }));
 
+    // restoring action
     nockExpected
-        .put(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
-            body => body.exec && body.exec.code === code)
+        .put(
+            `/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
+            body => body.exec && body.exec.code === code
+        )
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .query({"overwrite":"true"})
-        .reply(200, actionDescription(name));
+        .reply(200, actionDescription(name, binary));
 
+    // removing backup after restore
     nockExpected
         .delete(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
@@ -110,8 +115,10 @@ function expectActionBackup(name, code) {
 function expectInstallAgent(name) {
     // wskdebug creating the backup action
     nockExpected
-        .put(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
-            body => body.annotations.some(v => v.key === "wskdebug" && v.value === true))
+        .put(
+            `/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
+            body => body.annotations.some(v => v.key === "wskdebug" && v.value === true)
+        )
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .query({"overwrite":"true"})
         .reply(200, actionDescription(name));
@@ -126,6 +133,7 @@ function mockInvocation(name, activationId, params) {
     }
     params = params || {};
 
+    // wskdebug agent ping for new activation
     nockExpected
         .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
             body => body.$waitForActivation === true
@@ -144,6 +152,7 @@ function mockInvocation(name, activationId, params) {
 function expectInvocationResult(name, activationId, result) {
     result.$activationId = activationId;
 
+    // wskdebug sending result back to agent
     nockExpected
         .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
             body => {
@@ -180,9 +189,9 @@ function expectInvocationResult(name, activationId, result) {
         });
 }
 
-function mockOpenwhisk(action, code, params, expectedResult) {
-    mockOpenwhiskAction(action, code);
-    expectActionBackup(action, code);
+function mockOpenwhisk(action, code, params, expectedResult, binary=false) {
+    mockOpenwhiskAction(action, code, binary);
+    expectActionBackup(action, code, binary);
     expectInstallAgent(action);
     const activationId = mockInvocation(action, params);
     expectInvocationResult(action, activationId, expectedResult);
@@ -190,7 +199,7 @@ function mockOpenwhisk(action, code, params, expectedResult) {
 
 // --------------------------------------------< internal >---------------
 
-function actionDescription(name) {
+function actionDescription(name, binary=false) {
     return {
         "annotations":[
             { "key": "exec", "value": "nodejs:10" },
@@ -198,7 +207,7 @@ function actionDescription(name) {
         ],
         "exec":{
             "kind": "nodejs:10",
-            "binary": false
+            "binary": binary
         },
         "limits":{
             "concurrency": 200,
@@ -304,6 +313,49 @@ function mockOpenwhiskSwagger() {
         .reply(200, JSON.parse(fs.readFileSync("./test/openwhisk-swagger.json")));
 }
 
+// --------------------------------------------< utils >---------------
+
+let capture;
+
+function startCaptureStdout() {
+    endCaptureStdout();
+    global.disableMochaLogFile = true;
+
+    capture = {
+        stdout: "",
+        stderr: "",
+        original: {
+            stdoutWrite: process.stdout.write,
+            stderrWrite: process.stderr.write
+        }
+    };
+    process.stdout.write = function(string) {
+        capture.stdout += string;
+    };
+    process.stderr.write = function(string) {
+        capture.stderr += string;
+    };
+}
+
+function endCaptureStdout() {
+    delete global.disableMochaLogFile;
+
+    if (capture && capture.original) {
+        process.stdout.write = capture.original.stdoutWrite;
+        process.stderr.write = capture.original.stderrWrite;
+        delete capture.original;
+    }
+    if (capture) {
+        return {
+            stdout: capture.stdout,
+            stderr: capture.stderr
+        };
+    } else {
+        return {};
+    }
+}
+
+
 // --------------------------------------------< exports >---------------
 
 module.exports = {
@@ -319,4 +371,7 @@ module.exports = {
     expectInstallAgent,
     mockInvocation,
     expectInvocationResult,
+    // utils
+    startCaptureStdout,
+    endCaptureStdout
 }

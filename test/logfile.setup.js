@@ -81,12 +81,22 @@ before(function() {
     global.mochaLogFile = logFile;
 
     console.log = function(...args) {
-        fileWrite(logFile, util.format(...args) + "\n");
+        if (global.disableMochaLogFile) {
+            process.stdout.write(util.format(...args));
+        } else {
+            fileWrite(logFile, util.format(...args) + "\n");
+        }
     };
-    console.error = console.log;
+    console.error = function(...args) {
+        if (global.disableMochaLogFile) {
+            process.stderr.write(util.format(...args));
+        } else {
+            fileWrite(logFile, util.format(...args) + "\n");
+        }
+    }
     console.info = console.log;
-    console.warn = console.log;
     console.debug = console.log;
+    console.warn = console.error;
     console._logToFile = true;
 });
 

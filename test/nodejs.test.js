@@ -29,6 +29,8 @@
 const wskdebug = require('../index');
 const test = require('./test');
 const getPort = require('get-port');
+const assert = require('assert');
+const stripAnsi = require('strip-ansi');
 
 describe('node.js', () => {
     before(() => {
@@ -38,6 +40,7 @@ describe('node.js', () => {
     beforeEach(async () => {
         test.beforeEach();
         this.cwd = process.cwd();
+        // find free port
         this.port = await getPort(9229);
         console.log("[test] free port:", this.port);
     });
@@ -46,6 +49,35 @@ describe('node.js', () => {
         test.afterEach();
         console.log("chdir back to", this.cwd);
         process.chdir(this.cwd);
+    });
+
+    it("should print help", async () => {
+        test.startCaptureStdout();
+
+        await wskdebug(`-h`);
+
+        const stdio = test.endCaptureStdout();
+
+        assert.equal(stdio.stderr, "");
+        // testing a couple strings that should rarely change
+        assert(stdio.stdout.includes("Debug an OpenWhisk <action> by forwarding its activations to a local docker container"));
+        assert(stdio.stdout.includes("Supported kinds:"));
+        assert(stdio.stdout.includes("Arguments:"));
+        assert(stdio.stdout.includes("Action options:"));
+        assert(stdio.stdout.includes("LiveReload options:"));
+        assert(stdio.stdout.includes("Debugger options:"));
+        assert(stdio.stdout.includes("Agent options:"));
+        assert(stdio.stdout.includes("Options:"));
+    });
+
+    it("should print the version", async () => {
+        test.startCaptureStdout();
+
+        await wskdebug(`--version`);
+
+        const stdio = test.endCaptureStdout();
+        assert.equal(stdio.stderr, "");
+        assert.equal(stripAnsi(stdio.stdout.trim()), require(`${process.cwd()}/package.json`).version);
     });
 
     it("should run an action without local sources", async () => {
@@ -61,28 +93,71 @@ describe('node.js', () => {
             { msg: "CORRECT", input: "test-input" }
         );
 
-        // using debug port 12345 as default makes problems in Github Actions
         await wskdebug(`myaction -p ${this.port}`);
 
         test.assertAllNocksInvoked();
-    }).timeout(30000);
+    })
+    .timeout(30000);
 
-    it("should run an action with local sources - plain js, flat source structure", async () => {
+    it("should mount local sources with plain js and flat source structure", async () => {
         test.mockOpenwhisk(
             "myaction",
-            `function main(params) {
-                return {
-                    msg: 'WRONG' // should not use this if we specify local sources which return different
-                };
-            }`,
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
             {},
             { msg: "CORRECT" }
         );
 
         process.chdir("test/plain-flat");
-        // using debug port 12345 as default makes problems in Github Actions
         await wskdebug(`myaction action.js -p ${this.port}`);
 
         test.assertAllNocksInvoked();
-    }).timeout(30000);
+    })
+    .timeout(30000);
+
+    it("should mount local sources with plain js and one level deep source structure", async () => {
+        test.mockOpenwhisk(
+            "myaction",
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT" }
+        );
+
+        process.chdir("test/plain-onelevel");
+        await wskdebug(`myaction lib/action.js -p ${this.port}`);
+
+        test.assertAllNocksInvoked();
+    })
+    .timeout(30000);
+
+    it.skip("should mount and run local sources with a comment on the last line", async () => {
+        test.mockOpenwhisk(
+            "myaction",
+            `const main = () => ({ msg: 'WRONG' });`,
+            { },
+            { msg: "CORRECT" }
+        );
+
+        process.chdir("test/trailing-comment");
+        await wskdebug(`myaction -p ${this.port} action.js`);
+
+        test.assertAllNocksInvoked();
+    })
+    .timeout(30000);
+
+    it("should mount local sources with commonjs and flat source structure", async () => {
+        test.mockOpenwhisk(
+            "myaction",
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "one/two" },
+            true // binary = true for nodejs means zip action with commonjs (require) loading
+        );
+
+        process.chdir("test/commonjs-flat");
+        await wskdebug(`myaction action.js -p ${this.port}`);
+
+        test.assertAllNocksInvoked();
+    })
+    .timeout(30000);
 });

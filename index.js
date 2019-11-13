@@ -190,7 +190,7 @@ function yargsOptions(yargs) {
         type: "boolean",
         describe: "Verbose output. Logs activation parameters and result"
     });
-    yargs.version();
+    yargs.version(require("./package.json").version);
 }
 
 function getYargsParser() {
@@ -242,7 +242,7 @@ function printErrorAndExit(err, argv) {
     process.exit(1);
 }
 
-async function wskdebug(args, isCommandLine) {
+async function wskdebug(args, isCommandLine=false) {
     const originalConsole = enableConsoleColors();
 
     try {
@@ -255,7 +255,7 @@ async function wskdebug(args, isCommandLine) {
         const argv = parser.parse(args);
         normalizeArgs(argv);
 
-        if (argv.help) {
+        if (argv.help || argv.version) {
             // do nothing
             return;
         }
