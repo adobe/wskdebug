@@ -1,12 +1,13 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: circleci/node:12
+    # docker:
+    #   - image: circleci/node:12
     # machine:
     #   image: circleci/node
-    # machine:
-    #     enabled: true
+    machine:
+        enabled: true
+        docker_layer_caching: true
     steps:
       - setup_remote_docker:   # (2)
           docker_layer_caching: true
