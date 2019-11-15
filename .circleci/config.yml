@@ -1,18 +1,17 @@
 version: 2
 jobs:
   build:
-    # docker:
-    #   - image: circleci/node:12
-    # machine:
-    #   image: circleci/node
-    machine:
-        enabled: true
-        docker_layer_caching: true
+    machine: true
     steps:
-      # - setup_remote_docker:
-      #     docker_layer_caching: true
-      - checkout # check out the code in the project directory
-      - run: node --version
+      # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/281
+      - run: |
+          if [[ ${CIRCLE_SHELL_ENV} =~ "localbuild" ]]; then
+            echo "fixing local build ---------------------------------------------"
+            git clone $CIRCLE_REPOSITORY_URL /tmp/_circleci_local_build_repo
+          fi
+      - checkout
+      - run: echo "hello"
+      # - run: node --version
       - run: docker info
       - run: npm install
       - run: npm test -- -v
