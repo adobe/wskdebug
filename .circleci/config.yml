@@ -9,8 +9,8 @@ jobs:
         enabled: true
         docker_layer_caching: true
     steps:
-      - setup_remote_docker:   # (2)
-          docker_layer_caching: true
+      # - setup_remote_docker:
+      #     docker_layer_caching: true
       - checkout # check out the code in the project directory
       - run: docker info
       - run: npm install
