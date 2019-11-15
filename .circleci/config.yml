@@ -1,14 +1,15 @@
 version: 2
 jobs:
   build:
-    # docker:
-    #   - image: circleci/node:12
-    machine:
-      image: circleci/node
+    docker:
+      - image: circleci/node:12
+    # machine:
+    #   image: circleci/node
     # machine:
     #     enabled: true
-        #docker_layer_caching: true
     steps:
+      - setup_remote_docker:   # (2)
+          docker_layer_caching: true
       - checkout # check out the code in the project directory
       - run: docker info
       - run: npm install
