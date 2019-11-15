@@ -29,7 +29,7 @@ const FAKE_OPENWHISK_NAMESPACE = "test";
 
 const WSKDEBUG_BACKUP_ACTION_SUFFIX = "_wskdebug_original";
 
-let nockExpected;
+let openwhisk;
 
 function isDockerInstalled() {
     try {
@@ -42,10 +42,9 @@ function isDockerInstalled() {
 function beforeEach() {
     process.env.WSK_CONFIG_FILE = path.join(process.cwd(), "test/wskprops");
     // nock.recorder.rec({ enable_reqheaders_recording: true });
-    mockOpenwhiskSwagger();
-    nockExpected = nock(FAKE_OPENWHISK_SERVER);
-    // nockExpected.log(console.log);
-
+    openwhisk = nock(FAKE_OPENWHISK_SERVER);
+    // openwhisk.log(console.log);
+    mockOpenwhiskSwagger(openwhisk);
 }
 
 function afterEach() {
@@ -55,12 +54,26 @@ function afterEach() {
 
 function assertAllNocksInvoked() {
     assert(
-        nockExpected.isDone(),
-        "Expected these HTTP requests: " + nockExpected.pendingMocks().join()
+        openwhisk.isDone(),
+        "Expected these HTTP requests: " + openwhisk.pendingMocks().join()
     );
 }
 
-function mockOpenwhiskAction(name, code, binary=false) {
+function agentRetryResponse() {
+    return {
+        response: {
+            success: false,
+            result: {
+                error: {
+                    error: "Please retry.",
+                    code: 42 // retry
+                }
+            }
+        }
+    };
+}
+
+function mockAction(name, code, binary=false) {
     // reading action without code
     // nockExpected
     //     .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`)
@@ -73,95 +86,87 @@ function mockOpenwhiskAction(name, code, binary=false) {
     action.exec.code = code;
 
     // reading action with code
-    nockExpected
+    openwhisk
         .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200, action);
 }
 
-function expectActionBackup(name, code, binary=false) {
+function expectAgent(name, code, binary=false) {
     const backupName = name + WSKDEBUG_BACKUP_ACTION_SUFFIX;
 
     // wskdebug creating the backup action
-    nockExpected
-        .put(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
+    openwhisk
+        .put(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}?overwrite=true`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .query({"overwrite":"true"})
         .reply(200, actionDescription(backupName, binary));
 
+    // wskdebug creating the backup action
+    openwhisk
+        .put(
+            `/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}?overwrite=true`,
+            body => body.annotations.some(v => v.key === "wskdebug" && v.value === true)
+        )
+        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
+        .reply(200, actionDescription(name));
+
     // reading it later on restore
-    nockExpected
+    openwhisk
         .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200, Object.assign(actionDescription(backupName, binary), { exec: { code } }));
 
     // restoring action
-    nockExpected
+    openwhisk
         .put(
-            `/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
+            `/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}?overwrite=true`,
             body => body.exec && body.exec.code === code
         )
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .query({"overwrite":"true"})
         .reply(200, actionDescription(name, binary));
 
     // removing backup after restore
-    nockExpected
+    openwhisk
         .delete(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200);
 }
 
-function expectInstallAgent(name) {
-    // wskdebug creating the backup action
-    nockExpected
-        .put(
-            `/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
-            body => body.annotations.some(v => v.key === "wskdebug" && v.value === true)
-        )
-        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .query({"overwrite":"true"})
-        .reply(200, actionDescription(name));
+function nockActivation(name, bodyFn) {
+    return openwhisk
+        .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`, bodyFn)
+        .query(true) // support both ?blocking=true and non blocking (no query params)
+        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`);
 }
 
-function mockInvocation(name, activationId, params) {
-    if (typeof activationId === "object") {
-        params = activationId;
-        activationId = Date.now();
-    } else if (!activationId) {
-        activationId = Date.now();
-    }
+function mockAgentPoll(name) {
+    return nockActivation(name, body => body.$waitForActivation === true)
+        .optionally()
+        .reply(502, agentRetryResponse())
+        .persist();
+}
+
+function expectAgentInvocation(name, params, result) {
     params = params || {};
+    const activationId = Date.now();
+    result.$activationId = activationId;
 
     // wskdebug agent ping for new activation
-    nockExpected
-        .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
-            body => body.$waitForActivation === true
-        )
-        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .query({"blocking":"true"})
+    nockActivation(name, body => body.$waitForActivation === true)
         .reply(200, {
             response: {
                 result: Object.assign(params, { $activationId: activationId })
             }
         });
 
-    return activationId;
-}
-
-function expectInvocationResult(name, activationId, result) {
-    result.$activationId = activationId;
-
     // wskdebug sending result back to agent
-    nockExpected
-        .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
+    nockActivation(
+            name,
             body => {
                 assert.deepStrictEqual(body, result);
                 return true;
-            })
-        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .query({"blocking":"true"})
-        .reply(200, {
+            }
+        ).reply(200, {
             response: {
                 result: {
                     message: "Completed"
@@ -170,12 +175,7 @@ function expectInvocationResult(name, activationId, result) {
         });
 
     // graceful shutdown for wskdebug to end test
-    nockExpected
-        .post(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${name}`,
-            body => body.$waitForActivation === true
-        )
-        .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .query({"blocking":"true"})
+    nockActivation(name, body => body.$waitForActivation === true)
         .reply(502, {
             response: {
                 success: false,
@@ -189,12 +189,11 @@ function expectInvocationResult(name, activationId, result) {
         });
 }
 
-function mockOpenwhisk(action, code, params, expectedResult, binary=false) {
-    mockOpenwhiskAction(action, code, binary);
-    expectActionBackup(action, code, binary);
-    expectInstallAgent(action);
-    const activationId = mockInvocation(action, params);
-    expectInvocationResult(action, activationId, expectedResult);
+function mockActionAndInvocation(action, code, params, expectedResult, binary=false) {
+    mockAction(action, code, binary);
+    expectAgent(action, code, binary);
+
+    expectAgentInvocation(action, params, expectedResult);
 }
 
 // --------------------------------------------< internal >---------------
@@ -223,10 +222,11 @@ function actionDescription(name, binary=false) {
     };
 }
 
-function mockOpenwhiskSwagger() {
+function mockOpenwhiskSwagger(openwhisk) {
     // mock swagger api response
-    nock(FAKE_OPENWHISK_SERVER)
+    openwhisk
         .get('/')
+        .optionally()
         .matchHeader("accept", "application/json")
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200, {
@@ -290,8 +290,9 @@ function mockOpenwhiskSwagger() {
             }
         });
 
-    nock(FAKE_OPENWHISK_SERVER)
+    openwhisk
         .get('/api/v1')
+        .optionally()
         .matchHeader("accept", "application/json")
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200,{
@@ -306,8 +307,9 @@ function mockOpenwhiskSwagger() {
             }
         });
 
-    nock(FAKE_OPENWHISK_SERVER)
+    openwhisk
         .get('/api/v1/api-docs')
+        .optionally()
         .matchHeader("accept", "application/json")
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
         .reply(200, JSON.parse(fs.readFileSync("./test/openwhisk-swagger.json")));
@@ -355,6 +357,9 @@ function endCaptureStdout() {
     }
 }
 
+async function sleep(millis) {
+    return new Promise(resolve => setTimeout(resolve, millis));
+}
 
 // --------------------------------------------< exports >---------------
 
@@ -364,14 +369,16 @@ module.exports = {
     afterEach,
     assertAllNocksInvoked,
     // mock
-    mockOpenwhisk,
+    mockActionAndInvocation,
     // advanced
-    mockOpenwhiskAction,
-    expectActionBackup,
-    expectInstallAgent,
-    mockInvocation,
-    expectInvocationResult,
+    mockAction,
+    expectAgent,
+    nockActivation,
+    expectAgentInvocation,
+    mockAgentPoll,
+    agentRetryResponse,
     // utils
     startCaptureStdout,
-    endCaptureStdout
+    endCaptureStdout,
+    sleep
 }

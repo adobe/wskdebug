@@ -260,8 +260,12 @@ async function wskdebug(args, isCommandLine=false) {
             return;
         }
 
+        console.log(argv);
+
         try {
-            await new Debugger(argv).run();
+            const dbg = new Debugger(argv);
+            await dbg.start();
+            await dbg.run();
 
         } catch (e) {
             if (isCommandLine) {

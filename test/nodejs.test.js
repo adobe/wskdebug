@@ -27,10 +27,13 @@
 // - docker is required and the containers actually run
 
 const wskdebug = require('../index');
+const Debugger = require("../src/debugger");
+
 const test = require('./test');
 const getPort = require('get-port');
 const assert = require('assert');
 const stripAnsi = require('strip-ansi');
+const fs = require('fs');
 
 describe('node.js', () => {
     before(() => {
@@ -81,7 +84,7 @@ describe('node.js', () => {
     });
 
     it("should run an action without local sources", async () => {
-        test.mockOpenwhisk(
+        test.mockActionAndInvocation(
             "myaction",
             `function main(params) {
                 return {
@@ -97,10 +100,10 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(30000);
+    .timeout(20000);
 
     it("should mount local sources with plain js and flat source structure", async () => {
-        test.mockOpenwhisk(
+        test.mockActionAndInvocation(
             "myaction",
             // should not use this code if we specify local sources which return CORRECT
             `const main = () => ({ msg: 'WRONG' });`,
@@ -113,10 +116,10 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(30000);
+    .timeout(20000);
 
     it("should mount local sources with plain js and one level deep source structure", async () => {
-        test.mockOpenwhisk(
+        test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
             {},
@@ -128,10 +131,10 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(30000);
+    .timeout(20000);
 
     it.skip("should mount and run local sources with a comment on the last line", async () => {
-        test.mockOpenwhisk(
+        test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
             { },
@@ -143,10 +146,10 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(30000);
+    .timeout(20000);
 
     it("should mount local sources with commonjs and flat source structure", async () => {
-        test.mockOpenwhisk(
+        test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
             {},
@@ -159,5 +162,95 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(30000);
+    .timeout(20000);
+
+    it("should invoke action when a source file changes and -P is set", async () => {
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        // mock agent & action invocaton logic on the openwhisk side
+        const ACTIVATION_ID = "1234567890";
+        let invokedAction = false;
+        let completedAction = false;
+
+        test.nockActivation("myaction")
+            .reply(async (uri, body) => {
+                let response = [];
+                // wskdebug polling the agent
+                if (body.$waitForActivation === true) {
+                    // when the action got invoked, we tell it wskdebug
+                    // but only once
+                    if (invokedAction && !completedAction) {
+                        response = [ 200, {
+                            response: {
+                                result: {
+                                    $activationId: ACTIVATION_ID
+                                }
+                            }
+                        }];
+                    } else {
+                        // tell wskdebug to retry polling
+                        response = [ 502, test.agentRetryResponse() ];
+                    }
+                } else if (body.key === "invocationOnSourceModification") {
+                    // the action got invoked
+                    invokedAction = true;
+                    response = [ 200, { activationId: ACTIVATION_ID } ];
+
+                } else if (body.$activationId === ACTIVATION_ID) {
+                    // action was completed by wskdebug
+                    completedAction = true;
+                    response = [ 200, {}];
+                }
+                return response;
+            })
+            .persist();
+
+        // wskdebug myaction action.js -l -p ${this.port}
+        process.chdir("test/plain-flat");
+        const argv = {
+            verbose: true,
+            port: this.port,
+            action: "myaction",
+            sourcePath: `${process.cwd()}/action.js`,
+            invokeParams: '{ "key": "invocationOnSourceModification" }'
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        dbgr.run();
+
+        // simulate a source file change
+        fs.utimesSync("action.js", Date.now(), Date.now());
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        while (!completedAction) {
+            await test.sleep(100);
+        }
+
+        await dbgr.stop();
+
+        assert.ok(invokedAction, "action was not invoked on source change");
+        assert.ok(completedAction, "action invocation was not handled and completed");
+        test.assertAllNocksInvoked();
+    })
+    .timeout(20000);
+
+    // TODO: test -P action invocation (and -a)
+    // TODO: check lr port => separate test
+    //livereload: true,
+
+    // TODO: test --on-build and --build-path
+    // TODO: test agents - conditions (unit test agent code locally)
+    // TODO: test ngrok (?)
+    // TODO: test breakpoint debugging
+    // TODO: test -l livereload
+    // TODO: test -r shell command
+    // TODO: test action options
+    // TODO: test debugger options
+    // TODO: test --on-start
+
 });
