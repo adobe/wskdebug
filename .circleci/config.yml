@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    # docker:
+    #   - image: circleci/node:12
+    machine:
+      image: circleci/node
+    # machine:
+    #     enabled: true
+        #docker_layer_caching: true
+    steps:
+      - checkout # check out the code in the project directory
+      - run: docker info
+      - run: npm install
+      - run: npm test -- -v
+      - run: npm run report-coverage
