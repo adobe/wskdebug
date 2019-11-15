@@ -12,6 +12,7 @@ jobs:
       # - setup_remote_docker:
       #     docker_layer_caching: true
       - checkout # check out the code in the project directory
+      - run: node --version
       - run: docker info
       - run: npm install
       - run: npm test -- -v
