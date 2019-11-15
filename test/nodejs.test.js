@@ -100,7 +100,7 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(20000);
+    .timeout(60000);
 
     it("should mount local sources with plain js and flat source structure", async () => {
         test.mockActionAndInvocation(
@@ -116,7 +116,7 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(20000);
+    .timeout(60000);
 
     it("should mount local sources with plain js and one level deep source structure", async () => {
         test.mockActionAndInvocation(
@@ -131,7 +131,7 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(20000);
+    .timeout(60000);
 
     it.skip("should mount and run local sources with a comment on the last line", async () => {
         test.mockActionAndInvocation(
@@ -146,7 +146,7 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(20000);
+    .timeout(60000);
 
     it("should mount local sources with commonjs and flat source structure", async () => {
         test.mockActionAndInvocation(
@@ -162,7 +162,7 @@ describe('node.js', () => {
 
         test.assertAllNocksInvoked();
     })
-    .timeout(20000);
+    .timeout(60000);
 
     it("should invoke action when a source file changes and -P is set", async () => {
         const action = "myaction";
@@ -237,7 +237,7 @@ describe('node.js', () => {
         assert.ok(completedAction, "action invocation was not handled and completed");
         test.assertAllNocksInvoked();
     })
-    .timeout(20000);
+    .timeout(60000);
 
     // TODO: test -P action invocation (and -a)
     // TODO: check lr port => separate test
