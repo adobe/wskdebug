@@ -7,6 +7,7 @@ workflows:
       - build-node-12
       - build-node-10
       - build-node-8
+      - build-node-6
 
 jobs:
   build-node-latest: &build-template
@@ -58,3 +59,8 @@ jobs:
     <<: *build-template
     environment:
       NODE_VERSION: 8
+
+  build-node-6:
+    <<: *build-template
+    environment:
+      NODE_VERSION: 6
