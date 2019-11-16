@@ -29,12 +29,12 @@ jobs:
           name: Install node
           command: |
             if [ -d /opt/circleci/.nvm ]; then
-              echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+              export NVM_DIR="/opt/circleci/.nvm"
             else
               curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
-              echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+              export NVM_DIR="$HOME/.nvm"
             fi
-            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+            echo "[ -s $NVM_DIR/nvm.sh ] && \. $NVM_DIR/nvm.sh" >> $BASH_ENV
             source $BASH_ENV
             nvm install $NODE_VERSION
       - run: node --version
