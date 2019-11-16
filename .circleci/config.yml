@@ -36,6 +36,8 @@ jobs:
             fi
             echo "[ -s $NVM_DIR/nvm.sh ] && \. $NVM_DIR/nvm.sh" >> $BASH_ENV
             source $BASH_ENV
+            echo "installing $NODE_VERSION"
+            nvm
             nvm install $NODE_VERSION
       - run: node --version
       - run: npm install
