@@ -7,13 +7,12 @@ workflows:
       - build-node-12
       - build-node-10
       - build-node-8
-      - build-node-6
 
 jobs:
   build-node-latest: &build-template
     machine: true
     environment:
-      NODE_VERSION: node # latest
+      NODE_VERSION: node
     steps:
       # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/330
       - run:
@@ -59,8 +58,3 @@ jobs:
     <<: *build-template
     environment:
       NODE_VERSION: 8
-
-  build-node-6:
-    <<: *build-template
-    environment:
-      NODE_VERSION: 6
