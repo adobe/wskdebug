@@ -1,18 +1,39 @@
 version: 2
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+      # - build-node-12.x
+
 jobs:
   build:
     machine: true
+    environment:
+      NODE_VERSION: 12
     steps:
-      # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/281
-      - run: |
-          if [[ ${CIRCLE_SHELL_ENV} =~ "localbuild" ]]; then
-            echo "fixing local build ---------------------------------------------"
-            git clone $CIRCLE_REPOSITORY_URL /tmp/_circleci_local_build_repo
-          fi
+      # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/330
+      - run:
+          name: Local build handling
+          command: |
+            if [[ ${CIRCLE_SHELL_ENV} =~ "localbuild" ]]; then
+              if [ -d /workdir ]; then
+                ln -s /workdir /tmp/_circleci_local_build_repo
+              else
+                echo "Run this local build using: circleci build -v \$(pwd):/workdir"
+                exit 1
+              fi
+            fi
       - checkout
-      - run: echo "hello"
-      # - run: node --version
-      - run: docker info
+      - run:
+          name: Install nvm
+          command: |
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
+            echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+            source $BASH_ENV
+            nvm install $NODE_VERSION
+      - run: node --version
       - run: npm install
       - run: npm test -- -v
       - run: npm run report-coverage
