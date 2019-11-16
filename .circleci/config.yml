@@ -41,6 +41,7 @@ jobs:
             echo "installing $NODE_VERSION"
             nvm
             nvm install $NODE_VERSION
+            nvm alias default $NODE_VERSION
       - run: node --version
       - run: npm install
       - run: npm test -- -v
