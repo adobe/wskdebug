@@ -10,7 +10,7 @@ jobs:
   build:
     machine: true
     environment:
-      NODE_VERSION: node # latest
+      NODE_VERSION: v12 # latest
     steps:
       # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/330
       - run:
