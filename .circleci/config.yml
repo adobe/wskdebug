@@ -10,7 +10,7 @@ jobs:
   build:
     machine: true
     environment:
-      NODE_VERSION: 12
+      NODE_VERSION: node # latest
     steps:
       # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/330
       - run:
@@ -26,10 +26,14 @@ jobs:
             fi
       - checkout
       - run:
-          name: Install nvm
+          name: Install node
           command: |
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
-            echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            if [ -d /opt/circleci/.nvm ]; then
+              echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            else
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
+              echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            fi
             echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
             source $BASH_ENV
             nvm install $NODE_VERSION
