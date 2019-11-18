@@ -103,7 +103,7 @@ describe('nodejs', function() {
             { msg: "CORRECT" }
         );
 
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         await wskdebug(`myaction action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
@@ -117,7 +117,7 @@ describe('nodejs', function() {
             { msg: "CORRECT" }
         );
 
-        process.chdir("test/plain-onelevel");
+        process.chdir("test/nodejs/plain-onelevel");
         await wskdebug(`myaction lib/action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
@@ -131,7 +131,7 @@ describe('nodejs', function() {
             { msg: "CORRECT" }
         );
 
-        process.chdir("test/trailing-comment");
+        process.chdir("test/nodejs/trailing-comment");
         await wskdebug(`myaction -p ${test.port} action.js`);
 
         test.assertAllNocksInvoked();
@@ -146,7 +146,7 @@ describe('nodejs', function() {
             true // binary = true for nodejs means zip action with commonjs (require) loading
         );
 
-        process.chdir("test/commonjs-flat");
+        process.chdir("test/nodejs/commonjs-flat");
         await wskdebug(`myaction action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
@@ -198,7 +198,7 @@ describe('nodejs', function() {
             .persist();
 
         // wskdebug myaction action.js -l -P '{...}' -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",

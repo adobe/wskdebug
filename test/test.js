@@ -93,7 +93,7 @@ function mockAction(name, code, binary=false) {
     //     .reply(200, actionDescription(name, binary));
 
     // with code
-    const action = actionDescription(name, binary);
+    const action = nodejsActionDescription(name, binary);
     action.exec.code = code;
 
     // reading action with code
@@ -110,7 +110,7 @@ function expectAgent(name, code, binary=false) {
     openwhisk
         .put(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}?overwrite=true`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .reply(200, actionDescription(backupName, binary));
+        .reply(200, nodejsActionDescription(backupName, binary));
 
     // wskdebug creating the backup action
     openwhisk
@@ -119,13 +119,13 @@ function expectAgent(name, code, binary=false) {
             body => body.annotations.some(v => v.key === "wskdebug" && v.value === true)
         )
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .reply(200, actionDescription(name));
+        .reply(200, nodejsActionDescription(name));
 
     // reading it later on restore
     openwhisk
         .get(`/api/v1/namespaces/${FAKE_OPENWHISK_NAMESPACE}/actions/${backupName}`)
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .reply(200, Object.assign(actionDescription(backupName, binary), { exec: { code } }));
+        .reply(200, Object.assign(nodejsActionDescription(backupName, binary), { exec: { code } }));
 
     // restoring action
     openwhisk
@@ -134,7 +134,7 @@ function expectAgent(name, code, binary=false) {
             body => body.exec && body.exec.code === code
         )
         .matchHeader("authorization", `Basic ${FAKE_OPENWHISK_AUTH}`)
-        .reply(200, actionDescription(name, binary));
+        .reply(200, nodejsActionDescription(name, binary));
 
     // removing backup after restore
     openwhisk
@@ -209,7 +209,7 @@ function mockActionAndInvocation(action, code, params, expectedResult, binary=fa
 
 // --------------------------------------------< internal >---------------
 
-function actionDescription(name, binary=false) {
+function nodejsActionDescription(name, binary=false) {
     return {
         "annotations":[
             { "key": "exec", "value": "nodejs:10" },
@@ -381,7 +381,7 @@ function hasNotTimedOut(testCtx) {
         return false;
     }
     if (testCtx.test.__deadline === undefined) {
-        testCtx.test.__deadline = Date.now() + testCtx.timeout();
+        testCtx.test.__deadline = Date.now() + testCtx.timeout() * 0.8;
         return true;
     }
     return Date.now() < testCtx.test.__deadline;

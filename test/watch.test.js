@@ -60,7 +60,7 @@ describe('source watching', function() {
             });
 
         // wskdebug myaction action.js -P '{...}' -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",
@@ -86,6 +86,106 @@ describe('source watching', function() {
         test.assertAllNocksInvoked();
     });
 
+    it("should invoke action when a source file changes and -P is set when source-path points to directory", async function() {
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        let invokedAction = false;
+        test.nockActivation("myaction")
+            .reply((uri, body) => {
+                if (body.key === "invocationOnSourceModification") {
+                    // right action got invoked
+                    invokedAction = true;
+                    return [200, {}];
+                }
+                return [500, {}];
+            });
+
+        // wskdebug myaction test/fake -P '{...}' -p ${test.port}
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            sourcePath: "test/fake",
+            invokeParams: '{ "key": "invocationOnSourceModification" }',
+            // fake language/kind, manually set all required elements
+            kind: "fake",
+            image: "adobeapiplatform/adobe-action-nodejs-v10:3.0.21",
+            internalPort: 1234,
+            command: "node app.js"
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // simulate a source file change
+        test.touchFile("test/fake/params.json");
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        while (!invokedAction && test.hasNotTimedOut(this)) {
+            await test.sleep(100);
+        }
+
+        await dbgr.stop();
+
+        assert.ok(invokedAction, "action was not invoked on source change");
+        test.assertAllNocksInvoked();
+    });
+
+    it("should not invoke action when a source file in parent dir changes and -P is set", async function() {
+        this.timeout(5000);
+        test.hasNotTimedOut(this);
+
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        let invokedAction = false;
+        test.nockActivation("myaction")
+            .optionally()
+            .reply((uri, body) => {
+                if (body.key === "invocationOnSourceModification") {
+                    // right action got invoked
+                    invokedAction = true;
+                    return [200, {}];
+                }
+                return [500, {}];
+            });
+
+        // wskdebug myaction action.js -P '{...}' -p ${test.port}
+        process.chdir("test/nodejs/plain-flat");
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            sourcePath: `${process.cwd()}/action.js`,
+            invokeParams: '{ "key": "invocationOnSourceModification" }'
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // simulate a source file change in (unwatched) parent directory
+        test.touchFile("../action.js");
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        while (test.hasNotTimedOut(this)) {
+            await test.sleep(500);
+            if (invokedAction) {
+                break;
+            }
+        }
+
+        await dbgr.stop();
+
+        assert.ok(!invokedAction, "action was invoked on unwatched source change");
+    });
+
     it("should invoke action when a source file changes and -P is set to a filename", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
@@ -105,7 +205,7 @@ describe('source watching', function() {
             });
 
         // wskdebug myaction action.js -P params.json -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",
@@ -159,7 +259,7 @@ describe('source watching', function() {
             });
 
         // wskdebug myaction action.js -P '{...}' -a another-action -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",
@@ -212,7 +312,7 @@ describe('source watching', function() {
             });
 
         // wskdebug myaction action.js -P '{...}' -a another-action -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",
@@ -250,7 +350,7 @@ describe('source watching', function() {
         tmp.setGracefulCleanup();
 
         // wskdebug myaction action.js -r 'echo ...' -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",
@@ -291,7 +391,7 @@ describe('source watching', function() {
         tmp.setGracefulCleanup();
 
         // wskdebug myaction -r 'echo ...' -p ${test.port}
-        process.chdir("test/plain-flat");
+        process.chdir("test/nodejs/plain-flat");
         const argv = {
             port: test.port,
             action: "myaction",
