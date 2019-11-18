@@ -74,11 +74,6 @@ class OpenWhiskInvoker {
         this.containerName = this.asContainerName(`wskdebug-${this.action.name}-${Date.now()}`);
     }
 
-    async start() {
-        await this.startContainer();
-        await this.init();
-    }
-
     static async checkIfAvailable() {
         try {
             execute("docker info", {stdio: 'ignore'});
