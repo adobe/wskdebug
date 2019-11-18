@@ -1,3 +1,5 @@
+examples/
+
 .eslint*
 .vscode/
 .DS_Store
@@ -10,5 +12,11 @@ TODO.md
 LICENSE_HEADER.md
 CODE_OF_CONDUCT.md
 .github/
-examples/
-build
+build/
+test/
+.circleci/
+
+codecov.yml
+coverage.lcov
+.nyc_output/
+coverage/
