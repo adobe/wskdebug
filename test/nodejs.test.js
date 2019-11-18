@@ -93,7 +93,7 @@ describe('nodejs', function() {
         test.assertAllNocksInvoked();
     });
 
-    it.skip("should mount and run local sources with a comment on the last line", async function() {
+    it("should mount and run local sources with a comment on the last line", async function() {
         test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
