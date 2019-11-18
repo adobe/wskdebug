@@ -20,7 +20,7 @@
     "scripts": {
         "pretest": "eslint ./",
         "test": "nyc --reporter=text mocha --file test/logfile.setup.js test",
-        "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov"
+        "report-coverage": "nyc report --reporter=json && codecov -f coverage/coverage-final.json"
     },
     "dependencies": {
         "fetch-retry": "^2.2.0",
