@@ -50,6 +50,18 @@ function resolveValue(value, ...args) {
     }
 }
 
+function splitPath (fullPath) {
+  let fileName = ''
+  let dirPath = ''
+  if (fs.lstatSync(fullPath).isFile()) {
+    dirPath = path.dirname(fullPath);
+    fileName = path.basename(fullPath);
+  } else {
+    dirPath = fullPath
+  }
+  return [dirPath, fileName]
+}
+
 class OpenWhiskInvoker {
     constructor(actionName, action, options, wskProps, wsk) {
         this.actionName = actionName;
@@ -65,13 +77,17 @@ class OpenWhiskInvoker {
 
         // the build path can be separate, if not, same as the source/watch path
         this.sourcePath = options.buildPath || options.sourcePath;
-        this.buildPathRoot = options.buildPathRoot;
         this.hasBuildPath = Boolean(options.buildPath);
-        this.cwd = process.cwd();
-        // to be set at runtime (because of potential build)
-        this.sourceDir = ""
-        this.sourceFile = ""
-        this.sourceRoot = ""
+        this.buildPathRoot = options.buildPathRoot;
+
+        if (this.sourcePath && !this.hasBuildPath) {
+          [this.sourceDir, this.sourceFile] = splitPath(this.sourcePath)
+          this.sourceRoot = process.cwd()
+        } else {
+          this.sourceDir = ""
+          this.sourceFile = ""
+          this.sourceRoot = ""
+        }
 
         this.main = options.main;
 
@@ -122,15 +138,9 @@ class OpenWhiskInvoker {
 
         // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
-        if (this.sourcePath) {
-          if (fs.lstatSync(this.sourcePath).isFile()) {
-            this.sourceDir = path.dirname(this.sourcePath);
-            this.sourceFile = path.basename(this.sourcePath);
-          } else {
-            this.sourceDir = this.sourcePath;
-          }
-          // sourceRoot is cwd unless a build path has been defined in which case it is buildPathRoot or buildPath directory
-          this.sourceRoot = this.hasBuildPath && (this.buildPathRoot || this.sourceDir) || this.cwd
+        if (this.sourcePath && this.hasBuildPath) {
+          [this.sourceDir, this.sourceFile] = splitPath(this.sourcePath)
+          this.sourceRoot = this.buildPathRoot || this.sourceDir
         }
 
         // kind and image
