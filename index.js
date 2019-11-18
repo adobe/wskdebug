@@ -263,7 +263,7 @@ async function wskdebug(args, isCommandLine=false) {
     const originalConsole = enableConsoleColors();
 
     try {
-        const parser = getYargsParser(args);
+        const parser = getYargsParser();
 
         // if cli mode, we want to exit the process, otherwise throw an error
         parser.showHelpOnFail(isCommandLine);

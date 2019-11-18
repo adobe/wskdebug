@@ -32,7 +32,7 @@ if (typeof require(path)[mainFn] !== "function") {
 }
 
 // eslint-disable-next-line no-unused-vars
-function main(args) {
+function main(args) { // lgtm [js/unused-local-variable]
     // force reload of mounted action on every invocation
     delete require.cache[require.resolve(path)];
 

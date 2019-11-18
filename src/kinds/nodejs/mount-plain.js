@@ -40,7 +40,7 @@ function load(path) {
 load(path);
 
 // eslint-disable-next-line no-unused-vars
-function main(args) {
+function main(args) { // lgtm [js/unused-local-variable]
     // load code again on every new invocation
     const actionMain = load(path);
 

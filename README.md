@@ -1,4 +1,8 @@
-![](https://img.shields.io/badge/cli-wskdebug-brightgreen) [![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Actions Status](https://github.com/adobe/wskdebug/workflows/CI/badge.svg)](https://github.com/adobe/wskdebug/actions) [![codecov](https://codecov.io/gh/adobe/wskdebug/branch/master/graph/badge.svg)](https://codecov.io/gh/adobe/wskdebug)
+<!-- disabled badges
+cli: ![](https://img.shields.io/badge/cli-wskdebug-brightgreen)
+github actions: [![Actions Status](https://github.com/adobe/wskdebug/workflows/CI/badge.svg)](https://github.com/adobe/wskdebug/actions)
+-->
+[![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![CircleCI](https://circleci.com/gh/adobe/wskdebug.svg?style=shield)](https://circleci.com/gh/adobe/wskdebug) [![codecov](https://codecov.io/gh/adobe/wskdebug/branch/master/graph/badge.svg)](https://codecov.io/gh/adobe/wskdebug) [![Total alerts](https://img.shields.io/lgtm/alerts/g/adobe/wskdebug.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/adobe/wskdebug/alerts/)
 
 
 wskdebug
