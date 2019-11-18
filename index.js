@@ -260,9 +260,6 @@ async function wskdebug(args, isCommandLine=false) {
             return;
         }
 
-        argv.verbose = true;
-        // console.log(argv);
-
         try {
             const dbg = new Debugger(argv);
             await dbg.start();

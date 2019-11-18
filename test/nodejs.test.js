@@ -30,10 +30,8 @@ const wskdebug = require('../index');
 const Debugger = require("../src/debugger");
 
 const test = require('./test');
-const getPort = require('get-port');
 const assert = require('assert');
 const stripAnsi = require('strip-ansi');
-const fs = require('fs');
 
 describe('node.js', () => {
     before(() => {
@@ -41,17 +39,11 @@ describe('node.js', () => {
     });
 
     beforeEach(async () => {
-        test.beforeEach();
-        this.cwd = process.cwd();
-        // find free port
-        this.port = await getPort(9229);
-        console.log("[test] free port:", this.port);
+        await test.beforeEach();
     });
 
     afterEach(() => {
         test.afterEach();
-        console.log("chdir back to", this.cwd);
-        process.chdir(this.cwd);
     });
 
     it("should print help", async () => {
@@ -96,11 +88,11 @@ describe('node.js', () => {
             { msg: "CORRECT", input: "test-input" }
         );
 
-        await wskdebug(`myaction -p ${this.port}`);
+        await wskdebug(`myaction -p ${test.port}`);
 
         test.assertAllNocksInvoked();
     })
-    .timeout(60000);
+    .timeout(20000);
 
     it("should mount local sources with plain js and flat source structure", async () => {
         test.mockActionAndInvocation(
@@ -112,11 +104,11 @@ describe('node.js', () => {
         );
 
         process.chdir("test/plain-flat");
-        await wskdebug(`myaction action.js -p ${this.port}`);
+        await wskdebug(`myaction action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
     })
-    .timeout(60000);
+    .timeout(20000);
 
     it("should mount local sources with plain js and one level deep source structure", async () => {
         test.mockActionAndInvocation(
@@ -127,11 +119,11 @@ describe('node.js', () => {
         );
 
         process.chdir("test/plain-onelevel");
-        await wskdebug(`myaction lib/action.js -p ${this.port}`);
+        await wskdebug(`myaction lib/action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
     })
-    .timeout(60000);
+    .timeout(20000);
 
     it.skip("should mount and run local sources with a comment on the last line", async () => {
         test.mockActionAndInvocation(
@@ -142,11 +134,11 @@ describe('node.js', () => {
         );
 
         process.chdir("test/trailing-comment");
-        await wskdebug(`myaction -p ${this.port} action.js`);
+        await wskdebug(`myaction -p ${test.port} action.js`);
 
         test.assertAllNocksInvoked();
     })
-    .timeout(60000);
+    .timeout(20000);
 
     it("should mount local sources with commonjs and flat source structure", async () => {
         test.mockActionAndInvocation(
@@ -158,13 +150,13 @@ describe('node.js', () => {
         );
 
         process.chdir("test/commonjs-flat");
-        await wskdebug(`myaction action.js -p ${this.port}`);
+        await wskdebug(`myaction action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
     })
-    .timeout(60000);
+    .timeout(20000);
 
-    it("should invoke action when a source file changes and -P is set", async () => {
+    it("should invoke and handle action when a source file changes and -P is set", async () => {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -209,11 +201,10 @@ describe('node.js', () => {
             })
             .persist();
 
-        // wskdebug myaction action.js -l -p ${this.port}
+        // wskdebug myaction action.js -l -P '{...}' -p ${test.port}
         process.chdir("test/plain-flat");
         const argv = {
-            verbose: true,
-            port: this.port,
+            port: test.port,
             action: "myaction",
             sourcePath: `${process.cwd()}/action.js`,
             invokeParams: '{ "key": "invocationOnSourceModification" }'
@@ -224,7 +215,7 @@ describe('node.js', () => {
         dbgr.run();
 
         // simulate a source file change
-        fs.utimesSync("action.js", Date.now(), Date.now());
+        test.touchFile("action.js");
 
         // eslint-disable-next-line no-unmodified-loop-condition
         while (!completedAction) {
@@ -237,20 +228,15 @@ describe('node.js', () => {
         assert.ok(completedAction, "action invocation was not handled and completed");
         test.assertAllNocksInvoked();
     })
-    .timeout(60000);
-
-    // TODO: test -P action invocation (and -a)
-    // TODO: check lr port => separate test
-    //livereload: true,
+    .timeout(20000);
 
     // TODO: test --on-build and --build-path
+
+    // TODO: test -l livereload connection
+
     // TODO: test agents - conditions (unit test agent code locally)
-    // TODO: test ngrok (?)
     // TODO: test breakpoint debugging
-    // TODO: test -l livereload
-    // TODO: test -r shell command
     // TODO: test action options
     // TODO: test debugger options
-    // TODO: test --on-start
 
 });

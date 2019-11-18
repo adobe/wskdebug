@@ -76,7 +76,7 @@ class Debugger {
 
         try {
             // start live reload (if requested)
-            await this.startLiveReload();
+            await this.startSourceWatching();
 
             // start container & agent
             await this.invoker.start();
@@ -106,7 +106,7 @@ class Debugger {
             this.ready = true;
 
         } catch (e) {
-            await this.shutdown(this.action);
+            await this.shutdown();
             throw e;
         }
     }
@@ -153,7 +153,7 @@ class Debugger {
                 }
             }
         } finally {
-            await this.shutdown(this.action);
+            await this.shutdown();
         }
     }
 
@@ -161,6 +161,9 @@ class Debugger {
         this.running = false;
         if (this.runPromise) {
             await this.runPromise;
+        } else {
+            // someone called stop() without run()
+            await this.shutdown();
         }
     }
 
@@ -175,7 +178,7 @@ class Debugger {
         });
     }
 
-    async shutdown(actionName) {
+    async shutdown() {
         // only log this if we started properly
         if (this.ready) {
             console.log();
@@ -183,37 +186,40 @@ class Debugger {
             console.log("Shutting down...");
         }
 
-        try {
-            await this.restoreAction(actionName);
-            await this.invoker.stop();
+        // need to shutdown everything even if some fail, hence tryCatch() for each
 
-            if (this.liveReloadServer) {
+        if (this.action) {
+            await this.tryCatch(this.restoreAction(this.action));
+        }
+        await this.tryCatch(this.invoker.stop());
+
+        if (this.liveReloadServer) {
+            await this.tryCatch(() => {
                 if (this.liveReloadServer.server) {
                     this.liveReloadServer.close();
                 } else {
                     this.liveReloadServer.watcher.close();
                 }
-            }
-
-            if (this.ngrokServer) {
-                this.ngrokServer.close();
-            }
-
-            // only log this if we started properly
-            if (this.ready) {
-                console.log(`Done`);
-            }
-        } catch (e) {
-            if (this.argv.verbose) {
-                console.error("Error while terminating:");
-                console.error(e);
-            } else {
-                console.error("Error while terminating:", e.message);
-            }
+                this.liveReloadServer = null;
+            });
         }
+
+        if (this.ngrokServer) {
+            await this.tryCatch(() => {
+                this.ngrokServer.close();
+                this.ngrokServer = null;
+            });
+        }
+        await this.tryCatch(ngrok.kill());
+
+        // only log this if we started properly
+        if (this.ready) {
+            console.log(`Done`);
+        }
+        this.ready = false;
     }
 
-    // ------------------------------------------------< openwhisk utils > -----------------
+    // ------------------------------------------------< openwhisk utils >------------------
 
     async setupWsk() {
         if (!this.wsk) {
@@ -263,7 +269,7 @@ class Debugger {
         }
     }
 
-    // ------------------------------------------------< agent > -----------------
+    // ------------------------------------------------< agent >------------------
 
     getActionCopyName(name) {
         return `${name}_wskdebug_original`;
@@ -498,7 +504,7 @@ class Debugger {
         }
     }
 
-    // ------------------------------------------------< ngrok > -----------------
+    // ------------------------------------------------< ngrok >------------------
 
     // local http server retrieving forwards from the ngrok agent, running them
     // as a blocking local invocation and then returning the activation result back
@@ -558,7 +564,7 @@ class Debugger {
         }
     }
 
-    // ------------------------------------------------< polling > -----------------
+    // ------------------------------------------------< polling >------------------
 
     async waitForActivations(actionName) {
         this.activationsSeen = this.activationsSeen || {};
@@ -693,7 +699,7 @@ class Debugger {
         });
     }
 
-    // ----------------------------------------< openwhisk feature detection > -----------------
+    // ----------------------------------------< openwhisk feature detection >-----------------
 
     async getOpenWhiskVersion() {
         if (this.openwhiskVersion === undefined) {
@@ -740,9 +746,9 @@ class Debugger {
         }
     }
 
-    // ------------------------------------------------< source watching > -----------------
+    // ------------------------------------------------< source watching >-----------------
 
-    async startLiveReload() {
+    async startSourceWatching() {
         if (this.watchDir &&
             // each of these triggers listening
             (   this.argv.livereload
@@ -824,6 +830,27 @@ class Debugger {
             }
         }
     }
+
+    // ------------------------------------------------< utils >-----------------
+
+    async tryCatch(task, message="Error during shutdown:") {
+        try {
+            if (typeof task === "function") {
+                task();
+            } else {
+                await task;
+            }
+        } catch (e) {
+            console.log(e);
+            if (this.argv.verbose) {
+                console.error(message);
+                console.error(e);
+            } else {
+                console.error(message, e.message);
+            }
+        }
+    }
+
 }
 
 module.exports = Debugger;

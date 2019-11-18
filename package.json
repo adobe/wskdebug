@@ -41,7 +41,8 @@
         "mocha": "^6.2.2",
         "nock": "^11.7.0",
         "nyc": "^14.1.1",
-        "strip-ansi": "^6.0.0"
+        "strip-ansi": "^6.0.0",
+        "tmp": "^0.1.0"
     },
     "publishConfig": {
         "access": "public"

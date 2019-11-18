@@ -22,6 +22,7 @@ const nock = require('nock');
 const fs = require('fs');
 const { execSync } = require('child_process');
 const path = require('path');
+const getPort = require('get-port');
 
 const FAKE_OPENWHISK_SERVER = "https://example.com";
 const FAKE_OPENWHISK_AUTH = "c3VwZXItc2VjcmV0LWtleQ==";
@@ -39,17 +40,27 @@ function isDockerInstalled() {
     }
 }
 
-function beforeEach() {
+async function beforeEach() {
     process.env.WSK_CONFIG_FILE = path.join(process.cwd(), "test/wskprops");
     // nock.recorder.rec({ enable_reqheaders_recording: true });
     openwhisk = nock(FAKE_OPENWHISK_SERVER);
     // openwhisk.log(console.log);
     mockOpenwhiskSwagger(openwhisk);
+
+    // save current working dir
+    this.cwd = process.cwd();
+
+    // find free port
+    this.port = await getPort(9229);
+    console.log("[test] free port:", this.port);
 }
 
 function afterEach() {
     delete process.env.WSK_CONFIG_FILE;
     nock.cleanAll();
+
+    // restore working dir from beforeEach()
+    process.chdir(this.cwd);
 }
 
 function assertAllNocksInvoked() {
@@ -361,6 +372,10 @@ async function sleep(millis) {
     return new Promise(resolve => setTimeout(resolve, millis));
 }
 
+function touchFile(file) {
+    fs.utimesSync(file, Date.now(), Date.now());
+}
+
 // --------------------------------------------< exports >---------------
 
 module.exports = {
@@ -380,5 +395,6 @@ module.exports = {
     // utils
     startCaptureStdout,
     endCaptureStdout,
-    sleep
+    sleep,
+    touchFile
 }
