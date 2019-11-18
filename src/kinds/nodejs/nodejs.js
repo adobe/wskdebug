@@ -31,7 +31,7 @@ module.exports = {
 
     // return extra docker arguments such as mounting the source path
     dockerArgs: function(invoker) {
-        if (invoker.sourceRoot) {
+        if (invoker.sourcePath) {
             if (!invoker.sourceFile) {
                 throw new Error("[source-path] or --build-path must point to the action javascript source file, it cannot be a folder.");
             }

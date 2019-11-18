@@ -94,6 +94,23 @@ describe('nodejs', function() {
         test.assertAllNocksInvoked();
     });
 
+    it("should mount local sources with a dependency in the cwd reported as binary", async function() {
+      this.timeout(10000);
+      test.mockActionAndInvocation(
+          "myaction",
+          // should not use this code if we specify local sources which return CORRECT
+          `const main = () => ({ msg: 'WRONG' });`,
+          {},
+          { msg: "CORRECT" },
+          true // binary
+      );
+
+      process.chdir("test/nodejs/require-onelevel");
+      await wskdebug(`myaction lib/action.js -p ${test.port}`);
+
+      test.assertAllNocksInvoked();
+    });
+
     it("should mount and run local sources with a comment on the last line", async function() {
         test.mockActionAndInvocation(
             "myaction",
@@ -318,6 +335,8 @@ describe('nodejs', function() {
         assert.ok(completedAction, "action invocation was not handled and completed");
         test.assertAllNocksInvoked();
     });
+
+    // TODO: test buildPathRoot
 
     // TODO: test -l livereload connection
 

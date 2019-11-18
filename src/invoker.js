@@ -67,7 +67,11 @@ class OpenWhiskInvoker {
         this.sourcePath = options.buildPath || options.sourcePath;
         this.buildPathRoot = options.buildPathRoot;
         this.hasBuildPath = Boolean(options.buildPath);
-        this.cwd = process.cwd(); // fix cwd in case it changes
+        this.cwd = process.cwd();
+        // to be set at runtime (because of potential build)
+        this.sourceDir = ""
+        this.sourceFile = ""
+        this.sourceRoot = ""
 
         this.main = options.main;
 
@@ -118,15 +122,16 @@ class OpenWhiskInvoker {
 
         // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
-        if (this.sourcePath && fs.lstatSync(this.sourcePath).isFile()) {
+        if (this.sourcePath) {
+          if (fs.lstatSync(this.sourcePath).isFile()) {
             this.sourceDir = path.dirname(this.sourcePath);
             this.sourceFile = path.basename(this.sourcePath);
-        } else {
+          } else {
             this.sourceDir = this.sourcePath;
-            this.sourceFile = "";
+          }
+          // sourceRoot is cwd unless a build path has been defined in which case it is buildPathRoot or buildPath directory
+          this.sourceRoot = this.hasBuildPath && (this.buildPathRoot || this.sourceDir) || this.cwd
         }
-        // sourceRoot is cwd unless a build path has been defined in which case it is buildPathRoot or buildPath directory
-        this.sourceRoot = this.hasBuildPath && (this.buildPathRoot || this.sourceDir) || this.cwd
 
         // kind and image
 
