@@ -242,6 +242,17 @@ function printErrorAndExit(err, argv) {
     process.exit(1);
 }
 
+function registerExitHandler(dbg) {
+    // ensure we remove the agent when this app gets terminated
+    ['SIGINT', 'SIGTERM'].forEach(signal => {
+        process.on(signal, async () => {
+            await dbg.kill();
+
+            process.exit();
+        });
+    });
+}
+
 async function wskdebug(args, isCommandLine=false) {
     const originalConsole = enableConsoleColors();
 
@@ -262,6 +273,9 @@ async function wskdebug(args, isCommandLine=false) {
 
         try {
             const dbg = new Debugger(argv);
+            if (isCommandLine) {
+                registerExitHandler(dbg);
+            }
             await dbg.start();
             await dbg.run();
 

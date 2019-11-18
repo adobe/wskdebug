@@ -72,8 +72,6 @@ class Debugger {
         // local debug container
         this.invoker = new OpenWhiskInvoker(this.action, action, this.argv, this.wskProps, this.wsk);
 
-        this.registerExitHandler(this.action);
-
         try {
             // start live reload (if requested)
             await this.startSourceWatching();
@@ -160,6 +158,7 @@ class Debugger {
     async stop() {
         this.running = false;
         if (this.runPromise) {
+            // wait for the main loop to gracefully end, which will call shutdown()
             await this.runPromise;
         } else {
             // someone called stop() without run()
@@ -167,15 +166,10 @@ class Debugger {
         }
     }
 
-    registerExitHandler(actionName) {
-        // ensure we remove the agent when this app gets terminated
-        ['SIGINT', 'SIGTERM'].forEach(signal => {
-            process.on(signal, async () => {
-                await this.shutdown(actionName);
+    async kill() {
+        this.running = false;
 
-                process.exit();
-            });
-        });
+        await this.shutdown();
     }
 
     async shutdown() {
