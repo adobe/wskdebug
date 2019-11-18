@@ -18,9 +18,26 @@
         "wskdebug": "./cli.js"
     },
     "scripts": {
-        "pretest": "eslint ./",
-        "test": "nyc --reporter=text mocha --reporter mocha-multi-reporters --reporter-options configFile=test/multireporterconfig.json --file test/logfile.setup.js test/**/*.test.js",
+        "pretest": "eslint .",
+        "test": "nyc mocha test/**/*.test.js",
         "report-coverage": "nyc report --reporter=json && codecov -f coverage/coverage-final.json"
+    },
+    "nyc": {
+        "all": true,
+        "es-modules": false,
+        "reporter": "text",
+        "include": [
+            "[^.]*.js",
+            "src/**/*.js",
+            "agent/**/*.js"
+        ]
+    },
+    "mocha": {
+        "reporter": "mocha-multi-reporters",
+        "reporterOptions": {
+            "configFile": "test/multireporterconfig.json"
+        },
+        "file": "test/logfile.setup.js"
     },
     "dependencies": {
         "fetch-retry": "^2.2.0",
