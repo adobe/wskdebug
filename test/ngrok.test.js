@@ -66,6 +66,7 @@ describe('ngrok', () => {
         const dbgr = new Debugger(argv);
         await dbgr.start();
         // no need to run() for this test
+        dbgr.run();
         await dbgr.stop();
 
         assert(ngrok.isDone(), "Expected these HTTP requests: " + ngrok.pendingMocks().join());
