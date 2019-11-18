@@ -72,6 +72,8 @@ describe('source watching', function() {
         await dbgr.start();
         // no need to run() for this test
 
+        await test.sleep(500);
+
         // simulate a source file change
         test.touchFile("action.js");
 
