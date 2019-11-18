@@ -180,6 +180,9 @@ describe('nodejs', function() {
         await dbgr.start();
         dbgr.run();
 
+        // wait a bit
+        await test.sleep(500);
+
         // simulate a source file change
         test.touchFile("action.js");
 
@@ -260,6 +263,9 @@ describe('nodejs', function() {
         const dbgr = new Debugger(argv);
         await dbgr.start();
         dbgr.run();
+
+        // wait a bit
+        await test.sleep(500);
 
         // simulate a source file change
         test.touchFile("action.js");
