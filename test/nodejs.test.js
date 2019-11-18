@@ -33,7 +33,7 @@ const assert = require('assert');
 const stripAnsi = require('strip-ansi');
 
 describe('nodejs', function() {
-    this.timeout(20000);
+    this.timeout(30000);
 
     before(function() {
         test.isDockerInstalled();

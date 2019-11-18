@@ -27,7 +27,7 @@ const tmp = require('tmp');
 const fs = require('fs');
 
 describe('source watching', function() {
-    this.timeout(20000);
+    this.timeout(30000);
 
     before(function() {
         test.isDockerInstalled();
