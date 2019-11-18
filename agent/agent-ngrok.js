@@ -23,7 +23,7 @@ function hit(args, condition) {
         console.log("arguments:", args);
         console.log("evaluating hit condition: ", condition);
         // eslint-disable-next-line no-with
-        with (args) {
+        with (args) { // lgtm [js/with-statement]
             try {
                 // eslint-disable-next-line no-eval
                 return eval(condition);

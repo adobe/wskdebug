@@ -25,7 +25,7 @@ const INIT_RETRY_DELAY_MS = 100;
 const OPENWHISK_DEFAULTS = {
     timeout: 60*1000,
     memory: 256
-}
+};
 
 function execute(cmd, options, verbose) {
     cmd = cmd.replace(/\s+/g, ' ');
@@ -203,7 +203,7 @@ class OpenWhiskInvoker {
 |                                                                                          |
 | Alternatively set a higher 'timeout' in the launch configuration, such as 60000 (1 min). |
 +------------------------------------------------------------------------------------------+
-`)
+`);
         }
 
         if (this.verbose) {
