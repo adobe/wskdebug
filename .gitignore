@@ -9,3 +9,9 @@ jspm_packages
 *.tgz
 
 .webpack
+
+.nyc_output
+coverage
+build
+coverage.lcov
+test-results

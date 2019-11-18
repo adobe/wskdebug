@@ -118,7 +118,7 @@ class OpenWhiskInvoker {
     async startContainer() {
         const action = this.action;
 
-        // this must run after initial build was kicked off in Debugger.startLiveReload()
+        // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
         if (this.sourcePath && fs.lstatSync(this.sourcePath).isFile()) {
             this.sourceDir = path.dirname(this.sourcePath);
@@ -228,13 +228,20 @@ class OpenWhiskInvoker {
                 ${this.image}
                 ${this.debug.command}
             `,
+            // live stream view for docker image download output
             { stdio: showDockerRunOutput ? "inherit" : null },
             this.verbose
         );
 
         this.containerRunning = true;
 
-        spawn("docker", ["logs", "-t", "-f", this.name()], {stdio: "inherit"});
+        spawn("docker", ["logs", "-t", "-f", this.name()], {
+            stdio: [
+                "inherit", // stdin
+                global.mochaLogFile || "inherit", // stdout
+                global.mochaLogFile || "inherit"  // stderr
+            ]
+        });
     }
 
     async logInfo() {

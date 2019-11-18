@@ -1,0 +1,62 @@
+version: 2
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-node-latest
+      - build-node-12
+      - build-node-10
+      - build-node-8
+
+jobs:
+  build-node-latest: &build-template
+    machine: true
+    environment:
+      NODE_VERSION: node
+    steps:
+      # fix for local builds https://github.com/CircleCI-Public/circleci-cli/issues/330
+      - run:
+          name: Local build handling
+          command: |
+            if [[ ${CIRCLE_SHELL_ENV} =~ "localbuild" ]]; then
+              if [ -d /workdir ]; then
+                ln -s /workdir /tmp/_circleci_local_build_repo
+              else
+                echo "Run this local build using: circleci build -v \$(pwd):/workdir"
+                exit 1
+              fi
+            fi
+      - checkout
+      - run:
+          name: Install node
+          command: |
+            if [ -d /opt/circleci/.nvm ]; then
+              echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            else
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
+              echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            fi
+            echo ' [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+            source $BASH_ENV
+            nvm install $NODE_VERSION
+            nvm alias default $NODE_VERSION
+      - run: npm install
+      - run: npm test -- -v
+      - run: npm run report-coverage
+      - store_test_results:
+          path: test-results
+
+  build-node-12:
+    <<: *build-template
+    environment:
+      NODE_VERSION: 12
+
+  build-node-10:
+    <<: *build-template
+    environment:
+      NODE_VERSION: 10
+
+  build-node-8:
+    <<: *build-template
+    environment:
+      NODE_VERSION: 8

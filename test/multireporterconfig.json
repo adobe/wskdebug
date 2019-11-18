@@ -1,0 +1,8 @@
+{
+    "reporterEnabled": "spec, xunit",
+
+    "xunitReporterOptions": {
+        "id": "xunit",
+        "output": "test-results/mocha/test-results.xml"
+    }
+}
