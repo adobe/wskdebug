@@ -30,7 +30,7 @@ const Debugger = require("../src/debugger");
 
 const test = require('./test');
 const assert = require('assert');
-const fs = require('fs');
+const fse = require('fs-extra');
 
 describe('nodejs', function() {
     this.timeout(30000);
@@ -252,7 +252,7 @@ describe('nodejs', function() {
         // wskdebug myaction action.js --on-build "..." --build-path build/action.js -P '{...}' -p ${test.port}
         process.chdir("test/nodejs/build-step");
 
-        fs.rmdirSync("build", { recursive: true });
+        fse.removeSync("build");
 
         const argv = {
             port: test.port,
