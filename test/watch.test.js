@@ -138,8 +138,8 @@ describe('source watching', function() {
     });
 
     it("should not invoke action when a source file in parent dir changes and -P is set", async function() {
-        this.timeout(5000);
-        test.hasNotTimedOut(this);
+        this.timeout(10000);
+        const deadline = Date.now() + this.timeout()/2;
 
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
@@ -176,9 +176,10 @@ describe('source watching', function() {
         test.touchFile("../action.js");
 
         // eslint-disable-next-line no-unmodified-loop-condition
-        while (test.hasNotTimedOut(this)) {
-            await test.sleep(500);
+        while (Date.now() < deadline) {
+            await test.sleep(100);
             if (invokedAction) {
+                // this would be wrong, but let's abort then
                 break;
             }
         }
