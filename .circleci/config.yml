@@ -43,6 +43,8 @@ jobs:
       - run: npm install
       - run: npm test -- -v
       - run: npm run report-coverage
+      - store_test_results:
+          path: test-results
 
   build-node-12:
     <<: *build-template
