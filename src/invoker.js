@@ -74,11 +74,6 @@ class OpenWhiskInvoker {
         this.containerName = this.asContainerName(`wskdebug-${this.action.name}-${Date.now()}`);
     }
 
-    async start() {
-        await this.startContainer();
-        await this.init();
-    }
-
     static async checkIfAvailable() {
         try {
             execute("docker info", {stdio: 'ignore'});
@@ -253,7 +248,7 @@ class OpenWhiskInvoker {
         console.info(`Debug port : localhost:${this.debug.port}`)
     }
 
-    async init() {
+    async init(actionWithCode) {
         let action;
         if (this.sourcePath && this.debug.mountAction) {
             action = resolveValue(this.debug.mountAction, this);
@@ -266,9 +261,9 @@ class OpenWhiskInvoker {
                 console.log(`Pushing action code to local debug container: ${this.action.name}`);
             }
             action = {
-                binary: this.action.exec.binary,
-                main:   this.action.exec.main || "main",
-                code:   this.action.exec.code,
+                binary: actionWithCode.exec.binary,
+                main:   actionWithCode.exec.main || "main",
+                code:   actionWithCode.exec.code,
             };
         }
 
