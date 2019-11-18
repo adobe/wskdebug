@@ -50,11 +50,11 @@ describe('source watching', function() {
 
         let invokedAction = false;
         test.nockActivation("myaction")
-            .reply(async (uri, body) => {
+            .reply((uri, body) => {
                 if (body.key === "invocationOnSourceModification") {
                     // right action got invoked
                     invokedAction = true;
-                    return [ 200, {  } ];
+                    return [200, {}];
                 }
                 return [500, {}];
             });
@@ -95,11 +95,11 @@ describe('source watching', function() {
 
         let invokedAction = false;
         test.nockActivation("myaction")
-            .reply(async (uri, body) => {
+            .reply((uri, body) => {
                 if (body.key === "invocationOnSourceModification") {
                     // right action got invoked
                     invokedAction = true;
-                    return [ 200, {  } ];
+                    return [200, {}];
                 }
                 return [500, {}];
             });
@@ -143,11 +143,11 @@ describe('source watching', function() {
         let invokedWrongAction = false;
 
         test.nockActivation("another-action")
-            .reply(async (uri, body) => {
+            .reply((uri, body) => {
                 if (body.key === "invocationOnSourceModification") {
                     // right action got invoked
                     invokedAction = true;
-                    return [ 200, { } ];
+                    return [200, {}];
                 }
                 return [500, {}];
             });
@@ -199,10 +199,10 @@ describe('source watching', function() {
         let invokedWrongAction = false;
 
         test.nockActivation("another-action")
-            .reply(async () => {
+            .reply(() => {
                 // right action got invoked
                 invokedAction = true;
-                return [ 200, { } ];
+                return [200, {}];
             });
 
         test.nockActivation("myaction")

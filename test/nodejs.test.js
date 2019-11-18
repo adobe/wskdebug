@@ -32,7 +32,7 @@ const test = require('./test');
 const assert = require('assert');
 const stripAnsi = require('strip-ansi');
 
-describe('node.js', function() {
+describe('nodejs', function() {
     this.timeout(20000);
 
     before(function() {
@@ -191,7 +191,7 @@ describe('node.js', function() {
                 } else if (body.$activationId === ACTIVATION_ID) {
                     // action was completed by wskdebug
                     completedAction = true;
-                    response = [ 200, {}];
+                    response = [200, {}];
                 }
                 return response;
             })
