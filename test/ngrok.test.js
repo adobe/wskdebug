@@ -16,7 +16,6 @@
  */
 
 /* eslint-env mocha */
-/* eslint mocha/no-mocha-arrows: "off" */
 
 'use strict';
 
@@ -26,20 +25,22 @@ const test = require('./test');
 const assert = require('assert');
 const nock = require('nock');
 
-describe('ngrok', () => {
-    before(() => {
+describe('ngrok',  function() {
+    this.timeout(20000);
+
+    before(function() {
         test.isDockerInstalled();
     });
 
-    beforeEach(async () => {
+    beforeEach(async function() {
         await test.beforeEach();
     });
 
-    afterEach(() => {
+    afterEach(function() {
         test.afterEach();
     });
 
-    it("should connect to ngrok if selected", async () => {
+    it("should connect to ngrok if selected", async function() {
         test.mockActionAndInvocation(
             "myaction",
             // should not use this code if we specify local sources which return CORRECT
@@ -70,8 +71,7 @@ describe('ngrok', () => {
         await dbgr.stop();
 
         assert(ngrok.isDone(), "Expected these HTTP requests: " + ngrok.pendingMocks().join());
-    })
-    .timeout(20000);
+    });
 
     // TODO: test ngrokHandler, POST to local server
 });

@@ -376,6 +376,17 @@ function touchFile(file) {
     fs.utimesSync(file, Date.now(), Date.now());
 }
 
+function hasNotTimedOut(testCtx) {
+    if (!testCtx.test) {
+        return false;
+    }
+    if (testCtx.test.__deadline === undefined) {
+        testCtx.test.__deadline = Date.now() + testCtx.timeout();
+        return true;
+    }
+    return Date.now() < testCtx.test.__deadline;
+}
+
 // --------------------------------------------< exports >---------------
 
 module.exports = {
@@ -396,5 +407,6 @@ module.exports = {
     startCaptureStdout,
     endCaptureStdout,
     sleep,
-    touchFile
+    touchFile,
+    hasNotTimedOut
 }

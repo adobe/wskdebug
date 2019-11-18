@@ -16,7 +16,6 @@
  */
 
 /* eslint-env mocha */
-/* eslint mocha/no-mocha-arrows: "off" */
 
 'use strict';
 
@@ -27,20 +26,22 @@ const assert = require('assert');
 const tmp = require('tmp');
 const fs = require('fs');
 
-describe('source watching', () => {
-    before(() => {
+describe('source watching', function() {
+    this.timeout(20000);
+
+    before(function() {
         test.isDockerInstalled();
     });
 
-    beforeEach(async () => {
+    beforeEach(async function() {
         await test.beforeEach();
     });
 
-    afterEach(() => {
+    afterEach(function() {
         test.afterEach();
     });
 
-    it("should invoke action when a source file changes and -P is set", async () => {
+    it("should invoke action when a source file changes and -P is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -75,7 +76,7 @@ describe('source watching', () => {
         test.touchFile("action.js");
 
         // eslint-disable-next-line no-unmodified-loop-condition
-        while (!invokedAction) {
+        while (!invokedAction && test.hasNotTimedOut(this)) {
             await test.sleep(100);
         }
 
@@ -83,11 +84,54 @@ describe('source watching', () => {
 
         assert.ok(invokedAction, "action was not invoked on source change");
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    // TODO: test -a without -P
-    it("should invoke action when a source file changes and -a and -P is set", async () => {
+    it("should invoke action when a source file changes and -P is set to a filename", async function() {
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        let invokedAction = false;
+        test.nockActivation("myaction")
+            .reply(async (uri, body) => {
+                if (body.key === "invocationOnSourceModification") {
+                    // right action got invoked
+                    invokedAction = true;
+                    return [ 200, {  } ];
+                }
+                return [500, {}];
+            });
+
+        // wskdebug myaction action.js -P params.json -p ${test.port}
+        process.chdir("test/plain-flat");
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            sourcePath: `${process.cwd()}/action.js`,
+            invokeParams: 'params.json'
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // simulate a source file change
+        test.touchFile("action.js");
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        while (!invokedAction && test.hasNotTimedOut(this)) {
+            await test.sleep(100);
+        }
+
+        await dbgr.stop();
+
+        assert.ok(invokedAction, "action was not invoked on source change");
+        test.assertAllNocksInvoked();
+    });
+
+    it("should invoke action when a source file changes and -a and -P is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -131,9 +175,8 @@ describe('source watching', () => {
         // simulate a source file change
         test.touchFile("action.js");
 
-        const deadline = Date.now() + 20000;
         // eslint-disable-next-line no-unmodified-loop-condition
-        while (!invokedAction && Date.now() < deadline) {
+        while (!invokedAction && test.hasNotTimedOut(this)) {
             await test.sleep(100);
         }
 
@@ -142,10 +185,9 @@ describe('source watching', () => {
         assert.ok(!invokedWrongAction, "ignored -a and incorrectly invoked the action itself");
         assert.ok(invokedAction, "action was not invoked on source change");
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should invoke action when a source file changes and -a is set", async () => {
+    it("should invoke action when a source file changes and -a is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -185,9 +227,8 @@ describe('source watching', () => {
         // simulate a source file change
         test.touchFile("action.js");
 
-        const deadline = Date.now() + 20000;
         // eslint-disable-next-line no-unmodified-loop-condition
-        while (!invokedAction && Date.now() < deadline) {
+        while (!invokedAction && test.hasNotTimedOut(this)) {
             await test.sleep(100);
         }
 
@@ -196,10 +237,9 @@ describe('source watching', () => {
         assert.ok(!invokedWrongAction, "ignored -a and incorrectly invoked the action itself");
         assert.ok(invokedAction, "action was not invoked on source change");
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should run shell command when a source file changes and -r is set", async () => {
+    it("should run shell command when a source file changes and -r is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -227,8 +267,7 @@ describe('source watching', () => {
 
         // wait for result of shell file command
         let ranShellCommand = false;
-        const deadline = Date.now() + 20000;
-        while (!ranShellCommand && Date.now() < deadline) {
+        while (!ranShellCommand && test.hasNotTimedOut(this)) {
             await test.sleep(100);
             if (fs.readFileSync(tmpFile).toString().trim() === "CORRECT") {
                 ranShellCommand = true;
@@ -239,10 +278,9 @@ describe('source watching', () => {
 
         assert.ok(ranShellCommand, "shell command was not run on source change");
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should run shell command on start when --on-start is set", async () => {
+    it("should run shell command on start when --on-start is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -266,8 +304,7 @@ describe('source watching', () => {
 
         // wait for result of shell file command
         let ranShellCommand = false;
-        const deadline = Date.now() + 20000;
-        while (!ranShellCommand && Date.now() < deadline) {
+        while (!ranShellCommand && test.hasNotTimedOut(this)) {
             await test.sleep(100);
             if (fs.readFileSync(tmpFile).toString().trim() === "CORRECT") {
                 ranShellCommand = true;
@@ -278,7 +315,6 @@ describe('source watching', () => {
 
         assert.ok(ranShellCommand, "shell command was not run on start");
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
 });

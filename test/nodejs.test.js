@@ -16,7 +16,6 @@
  */
 
 /* eslint-env mocha */
-/* eslint mocha/no-mocha-arrows: "off" */
 
 'use strict';
 
@@ -33,20 +32,22 @@ const test = require('./test');
 const assert = require('assert');
 const stripAnsi = require('strip-ansi');
 
-describe('node.js', () => {
-    before(() => {
+describe('node.js', function() {
+    this.timeout(20000);
+
+    before(function() {
         test.isDockerInstalled();
     });
 
-    beforeEach(async () => {
+    beforeEach(async function() {
         await test.beforeEach();
     });
 
-    afterEach(() => {
+    afterEach(function() {
         test.afterEach();
     });
 
-    it("should print help", async () => {
+    it("should print help", async function() {
         test.startCaptureStdout();
 
         await wskdebug(`-h`);
@@ -65,7 +66,7 @@ describe('node.js', () => {
         assert(stdio.stdout.includes("Options:"));
     });
 
-    it("should print the version", async () => {
+    it("should print the version", async function() {
         test.startCaptureStdout();
 
         await wskdebug(`--version`);
@@ -75,7 +76,7 @@ describe('node.js', () => {
         assert.equal(stripAnsi(stdio.stdout.trim()), require(`${process.cwd()}/package.json`).version);
     });
 
-    it("should run an action without local sources", async () => {
+    it("should run an action without local sources", async function() {
         test.mockActionAndInvocation(
             "myaction",
             `function main(params) {
@@ -91,10 +92,9 @@ describe('node.js', () => {
         await wskdebug(`myaction -p ${test.port}`);
 
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should mount local sources with plain js and flat source structure", async () => {
+    it("should mount local sources with plain js and flat source structure", async function() {
         test.mockActionAndInvocation(
             "myaction",
             // should not use this code if we specify local sources which return CORRECT
@@ -107,10 +107,9 @@ describe('node.js', () => {
         await wskdebug(`myaction action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should mount local sources with plain js and one level deep source structure", async () => {
+    it("should mount local sources with plain js and one level deep source structure", async function() {
         test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
@@ -122,10 +121,9 @@ describe('node.js', () => {
         await wskdebug(`myaction lib/action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it.skip("should mount and run local sources with a comment on the last line", async () => {
+    it.skip("should mount and run local sources with a comment on the last line", async function() {
         test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
@@ -137,10 +135,9 @@ describe('node.js', () => {
         await wskdebug(`myaction -p ${test.port} action.js`);
 
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should mount local sources with commonjs and flat source structure", async () => {
+    it("should mount local sources with commonjs and flat source structure", async function() {
         test.mockActionAndInvocation(
             "myaction",
             `const main = () => ({ msg: 'WRONG' });`,
@@ -153,10 +150,9 @@ describe('node.js', () => {
         await wskdebug(`myaction action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
-    it("should invoke and handle action when a source file changes and -P is set", async () => {
+    it("should invoke and handle action when a source file changes and -P is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
 
@@ -227,16 +223,18 @@ describe('node.js', () => {
         assert.ok(invokedAction, "action was not invoked on source change");
         assert.ok(completedAction, "action invocation was not handled and completed");
         test.assertAllNocksInvoked();
-    })
-    .timeout(20000);
+    });
 
     // TODO: test --on-build and --build-path
 
     // TODO: test -l livereload connection
 
     // TODO: test agents - conditions (unit test agent code locally)
+    // TODO: test agent already installed (debugger.getAction())
+
     // TODO: test breakpoint debugging
     // TODO: test action options
     // TODO: test debugger options
+    // TODO: test non-concurrent openwhisk
 
 });
