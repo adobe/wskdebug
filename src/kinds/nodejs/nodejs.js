@@ -43,8 +43,11 @@ module.exports = {
     mountAction: function(invoker) {
         // bridge that mounts local source path
 
+        // test if code uses commonjs require()
+        const isCommonJS = /(\s|=)require\(\s*['"`]/.test(fs.readFileSync(invoker.sourcePath));
+
         // is it a require() based action or a plain JS one?
-        const bridgeSource = invoker.action.exec.binary ? "mount-require.js" : "mount-plain.js";
+        const bridgeSource = isCommonJS ? "mount-require.js" : "mount-plain.js";
 
         let code = fs.readFileSync(`${__dirname}/${bridgeSource}`, {encoding: 'utf8'});
 
