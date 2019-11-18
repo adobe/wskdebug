@@ -422,8 +422,8 @@ class Debugger {
                 agentName = "polling activation db";
 
                 // this needs 2 helper actions in addition to the agent in place of the action
-                await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${agentDir}/echo.js`)
-                await this.createHelperAction(`${actionName}_wskdebug_completed`, `${agentDir}/echo.js`)
+                await this.createHelperAction(`${actionName}_wskdebug_invoked`,   `${agentDir}/echo.js`);
+                await this.createHelperAction(`${actionName}_wskdebug_completed`, `${agentDir}/echo.js`);
 
                 code = fs.readFileSync(`${agentDir}/agent-activationdb.js`, {encoding: 'utf8'});
                 // rewrite the code to pass config (we want to avoid fiddling with default params of the action)
