@@ -31,7 +31,7 @@ const {execSync} = require('child_process');
 describe('cli', function() {
 
     // DISABLED - leads to segfault in nyc
-    it.skip("should print version (via cli.js)", async function() {
+    it("should print version (via cli.js)", async function() {
         const stdout = execSync("node cli.js --version").toString();
         assert.equal(stripAnsi(stdout.trim()), require(`${process.cwd()}/package.json`).version);
     });
