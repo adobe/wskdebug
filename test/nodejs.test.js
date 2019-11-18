@@ -30,7 +30,6 @@ const Debugger = require("../src/debugger");
 
 const test = require('./test');
 const assert = require('assert');
-const stripAnsi = require('strip-ansi');
 
 describe('nodejs', function() {
     this.timeout(30000);
@@ -45,35 +44,6 @@ describe('nodejs', function() {
 
     afterEach(function() {
         test.afterEach();
-    });
-
-    it("should print help", async function() {
-        test.startCaptureStdout();
-
-        await wskdebug(`-h`);
-
-        const stdio = test.endCaptureStdout();
-
-        assert.equal(stdio.stderr, "");
-        // testing a couple strings that should rarely change
-        assert(stdio.stdout.includes("Debug an OpenWhisk <action> by forwarding its activations to a local docker container"));
-        assert(stdio.stdout.includes("Supported kinds:"));
-        assert(stdio.stdout.includes("Arguments:"));
-        assert(stdio.stdout.includes("Action options:"));
-        assert(stdio.stdout.includes("LiveReload options:"));
-        assert(stdio.stdout.includes("Debugger options:"));
-        assert(stdio.stdout.includes("Agent options:"));
-        assert(stdio.stdout.includes("Options:"));
-    });
-
-    it("should print the version", async function() {
-        test.startCaptureStdout();
-
-        await wskdebug(`--version`);
-
-        const stdio = test.endCaptureStdout();
-        assert.equal(stdio.stderr, "");
-        assert.equal(stripAnsi(stdio.stdout.trim()), require(`${process.cwd()}/package.json`).version);
     });
 
     it("should run an action without local sources", async function() {
@@ -214,7 +184,7 @@ describe('nodejs', function() {
         test.touchFile("action.js");
 
         // eslint-disable-next-line no-unmodified-loop-condition
-        while (!completedAction) {
+        while (!completedAction && test.hasNotTimedOut(this)) {
             await test.sleep(100);
         }
 
@@ -225,7 +195,86 @@ describe('nodejs', function() {
         test.assertAllNocksInvoked();
     });
 
-    // TODO: test --on-build and --build-path
+    it("should invoke and handle action when a source file changes and --on-build and --build-path and -P are set", async function() {
+        this.timeout(10000);
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        // mock agent & action invocaton logic on the openwhisk side
+        const ACTIVATION_ID = "1234567890";
+        let invokedAction = false;
+        let completedAction = false;
+
+        test.nockActivation("myaction")
+            .reply(async (uri, body) => {
+                let response = [];
+                // wskdebug polling the agent
+                if (body.$waitForActivation === true) {
+                    // when the action got invoked, we tell it wskdebug
+                    // but only once
+                    if (invokedAction && !completedAction) {
+                        response = [ 200, {
+                            response: {
+                                result: {
+                                    $activationId: ACTIVATION_ID
+                                }
+                            }
+                        }];
+                    } else {
+                        // tell wskdebug to retry polling
+                        response = [ 502, test.agentRetryResponse() ];
+                    }
+                } else if (body.key === "invocationOnSourceModification") {
+                    // the action got invoked
+                    invokedAction = true;
+                    response = [ 200, { activationId: ACTIVATION_ID } ];
+
+                } else if (body.$activationId === ACTIVATION_ID) {
+                    // action was completed by wskdebug
+                    if (body.msg === "CORRECT") {
+                        completedAction = true;
+                        response = [200, {}];
+                    } else {
+                        response = [502, test.agentExitResponse()];
+                    }
+                }
+                return response;
+            })
+            .persist();
+
+        // wskdebug myaction action.js --on-build "..." --build-path build/action.js -P '{...}' -p ${test.port}
+        process.chdir("test/nodejs/build-step");
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            // copy a different file with "CORRECT in it"
+            onBuild: `mkdir -p build; cp action-build.txt build/action.js`,
+            buildPath: `${process.cwd()}/build/action.js`,
+            sourcePath: `${process.cwd()}/action.js`,
+            invokeParams: '{ "key": "invocationOnSourceModification" }'
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        dbgr.run();
+
+        // simulate a source file change
+        test.touchFile("action.js");
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        while (!completedAction && test.hasNotTimedOut(this)) {
+            await test.sleep(100);
+        }
+
+        await dbgr.stop();
+
+        assert.ok(invokedAction, "action was not invoked on source change");
+        assert.ok(completedAction, "action invocation was not handled and completed");
+        test.assertAllNocksInvoked();
+    });
 
     // TODO: test -l livereload connection
 

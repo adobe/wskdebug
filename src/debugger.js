@@ -132,6 +132,7 @@ class Debugger {
                     // wait for activation, run it, complete, repeat
                     const activation = await this.waitForActivations(this.action);
                     if (!activation) {
+                        this.running = false;
                         return;
                     }
 
@@ -685,12 +686,27 @@ class Debugger {
             console.log(result);
         }
 
-        result.$activationId = activationId;
-        await this.wsk.actions.invoke({
-            name: this.concurrency ? actionName : `${actionName}_wskdebug_completed`,
-            params: result,
-            blocking: true
-        });
+        try {
+            result.$activationId = activationId;
+            await this.wsk.actions.invoke({
+                name: this.concurrency ? actionName : `${actionName}_wskdebug_completed`,
+                params: result,
+                blocking: true
+            });
+        } catch (e) {
+            // look for special error codes from agent
+            const errorCode = this.getActivationError(e).code;
+            // 42 => retry
+            if (errorCode === 42) {
+                // do nothing
+            } else if (errorCode === 43) {
+                // 43 => graceful shutdown (for unit tests)
+                console.log("Graceful shutdown requested by agent (only for unit tests)");
+                this.running = false;
+            } else {
+                console.error("Unexpected error while completing activation:", e);
+            }
+        }
     }
 
     // ----------------------------------------< openwhisk feature detection >-----------------

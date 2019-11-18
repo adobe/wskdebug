@@ -84,6 +84,20 @@ function agentRetryResponse() {
     };
 }
 
+function agentExitResponse() {
+    return {
+        response: {
+            success: false,
+            result: {
+                error: {
+                    error: "Please exit, thanks.",
+                    code: 43 // graceful exit
+                }
+            }
+        }
+    };
+}
+
 function mockAction(name, code, binary=false) {
     // reading action without code
     // nockExpected
@@ -403,6 +417,7 @@ module.exports = {
     expectAgentInvocation,
     mockAgentPoll,
     agentRetryResponse,
+    agentExitResponse,
     // utils
     startCaptureStdout,
     endCaptureStdout,
