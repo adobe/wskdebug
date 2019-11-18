@@ -72,6 +72,7 @@ describe('source watching', function() {
         await dbgr.start();
         // no need to run() for this test
 
+        // wait a bit
         await test.sleep(500);
 
         // simulate a source file change
@@ -123,6 +124,9 @@ describe('source watching', function() {
         await dbgr.start();
         // no need to run() for this test
 
+        // wait a bit
+        await test.sleep(500);
+
         // simulate a source file change
         test.touchFile("test/fake/params.json");
 
@@ -172,6 +176,9 @@ describe('source watching', function() {
         await dbgr.start();
         // no need to run() for this test
 
+        // wait a bit
+        await test.sleep(500);
+
         // simulate a source file change in (unwatched) parent directory
         test.touchFile("../action.js");
 
@@ -219,6 +226,9 @@ describe('source watching', function() {
         const dbgr = new Debugger(argv);
         await dbgr.start();
         // no need to run() for this test
+
+        // wait a bit
+        await test.sleep(500);
 
         // simulate a source file change
         test.touchFile("action.js");
@@ -275,6 +285,9 @@ describe('source watching', function() {
         await dbgr.start();
         // no need to run() for this test
 
+        // wait a bit
+        await test.sleep(500);
+
         // simulate a source file change
         test.touchFile("action.js");
 
@@ -327,6 +340,9 @@ describe('source watching', function() {
         await dbgr.start();
         // no need to run() for this test
 
+        // wait a bit
+        await test.sleep(500);
+
         // simulate a source file change
         test.touchFile("action.js");
 
@@ -364,6 +380,9 @@ describe('source watching', function() {
         const dbgr = new Debugger(argv);
         await dbgr.start();
         // no need to run() for this test
+
+        // wait a bit
+        await test.sleep(500);
 
         // simulate a source file change
         test.touchFile("action.js");
