@@ -39,6 +39,7 @@ function getAnnotation(action, key) {
 class Debugger {
     constructor(argv) {
         this.argv = argv;
+        this.action = argv.action;
 
         this.wskProps = wskprops.get();
         if (argv.ignoreCerts) {
@@ -56,6 +57,180 @@ class Debugger {
             }
         }
     }
+
+    async start() {
+        await this.setupWsk();
+
+        // quick fail for missing requirements such as docker not running
+        await OpenWhiskInvoker.checkIfAvailable();
+
+        console.info(`Starting debugger for /${this.wskProps.namespace}/${this.action}`);
+
+        // get the action
+        const { action, agentAlreadyInstalled } = await this.getAction(this.action);
+
+        // local debug container
+        this.invoker = new OpenWhiskInvoker(this.action, action, this.argv, this.wskProps, this.wsk);
+
+        try {
+            // run build initially (would be required by starting container)
+            if (this.argv.onBuild) {
+                console.info("=> Build:", this.argv.onBuild);
+                spawnSync(this.argv.onBuild, {shell: true, stdio: "inherit"});
+            }
+
+            // start container - get it up fast for VSCode to connect within its 10 seconds timeout
+            await this.invoker.startContainer();
+
+            // get code and /init local container
+            if (this.argv.verbose) {
+                console.log(`Fetching action code from OpenWhisk: ${this.action}`);
+            }
+            const actionWithCode = await this.wsk.actions.get(this.action);
+            action.exec = actionWithCode.exec;
+            await this.invoker.init(actionWithCode);
+
+            // setup agent in openwhisk
+
+            // user can switch between agents (ngrok or not), hence we need to restore
+            // (better would be to track the agent + its version and avoid a restore, but that's TBD)
+            if (agentAlreadyInstalled) {
+                await this.restoreAction(this.action);
+            }
+
+            await this.installAgent(this.action, action);
+
+            if (this.argv.onStart) {
+                console.log("On start:", this.argv.onStart);
+                spawnSync(this.argv.onStart, {shell: true, stdio: "inherit"});
+            }
+
+            // start live reload (if requested)
+            await this.startSourceWatching();
+
+            console.log();
+            console.info(`Action     : ${this.action}`);
+            this.invoker.logInfo();
+            if (this.argv.condition) {
+                console.info(`Condition  : ${this.argv.condition}`);
+            }
+            console.log();
+            console.info(`Ready, waiting for activations! Use CTRL+C to exit`);
+
+            this.ready = true;
+
+        } catch (e) {
+            await this.shutdown();
+            throw e;
+        }
+    }
+
+    async run() {
+        return this.runPromise = this._run();
+    }
+
+    async _run() {
+        try {
+            this.running = true;
+
+            // main blocking loop
+            // abort if this.running is set to false
+            // from here on, user can end debugger with ctrl+c
+            while (this.running) {
+                if (this.argv.ngrok) {
+                    // agent: ngrok
+                    // simply block, ngrokServer keeps running in background
+                    await sleep(1000);
+
+                } else {
+                    // agent: concurrent
+                    // agent: non-concurrent
+                    // wait for activation, run it, complete, repeat
+                    const activation = await this.waitForActivations(this.action);
+                    if (!activation) {
+                        this.running = false;
+                        return;
+                    }
+
+                    const id = activation.$activationId;
+                    delete activation.$activationId;
+
+                    const startTime = Date.now();
+
+                    // run this activation on the local docker container
+                    // which will block if the actual debugger hits a breakpoint
+                    const result = await this.invoker.run(activation, id);
+
+                    const duration = Date.now() - startTime;
+
+                    // pass on the local result to the agent in openwhisk
+                    await this.completeActivation(this.action, id, result, duration);
+                }
+            }
+        } finally {
+            await this.shutdown();
+        }
+    }
+
+    async stop() {
+        this.running = false;
+        if (this.runPromise) {
+            // wait for the main loop to gracefully end, which will call shutdown()
+            await this.runPromise;
+        } else {
+            // someone called stop() without run()
+            await this.shutdown();
+        }
+    }
+
+    async kill() {
+        this.running = false;
+
+        await this.shutdown();
+    }
+
+    async shutdown() {
+        // only log this if we started properly
+        if (this.ready) {
+            console.log();
+            console.log();
+            console.log("Shutting down...");
+        }
+
+        // need to shutdown everything even if some fail, hence tryCatch() for each
+
+        if (this.action) {
+            await this.tryCatch(this.restoreAction(this.action));
+        }
+        await this.tryCatch(this.invoker.stop());
+
+        if (this.liveReloadServer) {
+            await this.tryCatch(() => {
+                if (this.liveReloadServer.server) {
+                    this.liveReloadServer.close();
+                } else {
+                    this.liveReloadServer.watcher.close();
+                }
+                this.liveReloadServer = null;
+            });
+        }
+
+        if (this.ngrokServer) {
+            await this.tryCatch(() => {
+                this.ngrokServer.close();
+                this.ngrokServer = null;
+            });
+        }
+        await this.tryCatch(ngrok.kill());
+
+        // only log this if we started properly
+        if (this.ready) {
+            console.log(`Done`);
+        }
+        this.ready = false;
+    }
+
+    // ------------------------------------------------< openwhisk utils >------------------
 
     async setupWsk() {
         if (!this.wsk) {
@@ -78,89 +253,12 @@ class Debugger {
         }
     }
 
-    async run() {
-        await this.setupWsk();
-
-        // quick fail for missing requirements such as docker not running
-        await OpenWhiskInvoker.checkIfAvailable();
-
-        const actionName = this.argv.action;
-        console.info(`Starting debugger for /${this.wskProps.namespace}/${actionName}`);
-
-        // get the action
-        const { action, agentAlreadyInstalled } = await this.getAction(actionName);
-
-        // local debug container
-        this.invoker = new OpenWhiskInvoker(actionName, action, this.argv, this.wskProps, this.wsk);
-
-        this.registerExitHandler(actionName);
-
-        try {
-            // start live reload (if requested)
-            await this.startLiveReload();
-
-            // start container & agent
-            await this.invoker.start();
-
-            // user can switch between agents (ngrok or not), hence we need to restore
-            // (better would be to track the agent + its version and avoid a restore, but that's TBD)
-            if (agentAlreadyInstalled) {
-                await this.restoreAction(actionName);
-            }
-
-            await this.installAgent(actionName, action);
-
-            if (this.argv.onStart) {
-                console.log("On start:", this.argv.onStart);
-                spawnSync(this.argv.onStart, {shell: true, stdio: "inherit"});
-            }
-            console.log();
-            console.info(`Action     : ${actionName}`);
-            this.invoker.logInfo();
-            if (this.argv.condition) {
-                console.info(`Condition  : ${this.argv.condition}`);
-            }
-            console.log();
-            console.info(`Ready, waiting for activations`);
-            console.info(`Use CTRL+C to exit`);
-
-            this.ready = true;
-
-            // from here on, end debugger with ctrl+c
-            if (this.argv.ngrok) {
-                // promise that never resolves (ngrokServer keeps running)
-                await new Promise(() => {});
-
-            } else {
-                // main blocking loop (agent concurrent + non-concurrent)
-                while (true) {
-                    const activation = await this.waitForActivations(actionName);
-
-                    const id = activation.$activationId;
-                    delete activation.$activationId;
-
-                    const startTime = Date.now();
-
-                    // run this activation on the local docker container
-                    // which will block if the actual debugger hits a breakpoint
-                    const result = await this.invoker.run(activation, id);
-
-                    const duration = Date.now() - startTime;
-
-                    // pass on the local result to the agent in openwhisk
-                    await this.completeActivation(actionName, id, result, duration);
-                }
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            await this.onExit(actionName);
+    async getWskActionWithoutCode(actionName) {
+        if (this.argv.verbose) {
+            console.log(`Getting action metadata from OpenWhisk: ${actionName}`);
         }
-    }
-
-    async getWskAction(actionName) {
         try {
-            return await this.wsk.actions.get(actionName);
+            return await this.wsk.actions.get({name: actionName, code:false});
         } catch (e) {
             if (e.statusCode === 404) {
                 return null;
@@ -169,6 +267,23 @@ class Debugger {
             }
         }
     }
+
+    async actionExists(name) {
+        try {
+            await this.wsk.actions.get({name: name, code: false});
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    async deleteActionIfExists(name) {
+        if (await this.actionExists(name)) {
+            await this.wsk.actions.delete(name);
+        }
+    }
+
+    // ------------------------------------------------< agent >------------------
 
     getActionCopyName(name) {
         return `${name}_wskdebug_original`;
@@ -180,7 +295,7 @@ class Debugger {
     }
 
     async getAction(actionName) {
-        let action = await this.getWskAction(actionName);
+        let action = await this.getWskActionWithoutCode(actionName);
         if (action === null) {
             throw new Error(`Action not found: ${actionName}`);
         }
@@ -262,13 +377,13 @@ class Debugger {
             }
 
             // 1. start local server on random port
-            const ngrokServer = http.createServer(this.ngrokHandler.bind(this));
+            this.ngrokServer = http.createServer(this.ngrokHandler.bind(this));
             // turn server.listen() into promise so we can await
-            const listen = util.promisify( ngrokServer.listen.bind(ngrokServer) );
+            const listen = util.promisify( this.ngrokServer.listen.bind(this.ngrokServer) );
             await listen(0, '127.0.0.1');
 
             // 2. start ngrok tunnel connected to that port
-            this.ngrokServerPort = ngrokServer.address().port;
+            this.ngrokServerPort = this.ngrokServer.address().port;
 
             // create a unique authorization token that we check on our local instance later
             // this adds extra protection on top of the uniquely generated ngrok subdomain (e.g. a01ae275.ngrok.io)
@@ -372,6 +487,39 @@ class Debugger {
         }
     }
 
+    async restoreAction(actionName) {
+        if (this.agentInstalled) {
+            if (this.argv.verbose) {
+                console.log();
+                console.log(`Restoring action`);
+            }
+
+            const copy = this.getActionCopyName(actionName);
+
+            try {
+                const original = await this.wsk.actions.get(copy);
+
+                // copy the backup (copy) to the regular action
+                await this.wsk.actions.update({
+                    name: actionName,
+                    action: original
+                });
+
+                // remove the backup
+                await this.wsk.actions.delete(copy);
+
+                // remove any helpers if they exist
+                await this.deleteActionIfExists(`${actionName}_wskdebug_invoked`);
+                await this.deleteActionIfExists(`${actionName}_wskdebug_completed`);
+
+            } catch (e) {
+                console.error("Error while restoring original action:", e);
+            }
+        }
+    }
+
+    // ------------------------------------------------< ngrok >------------------
+
     // local http server retrieving forwards from the ngrok agent, running them
     // as a blocking local invocation and then returning the activation result back
     ngrokHandler(req, res) {
@@ -430,88 +578,7 @@ class Debugger {
         }
     }
 
-    registerExitHandler(actionName) {
-        // ensure we remove the agent when this app gets terminated
-        ['SIGINT', 'SIGTERM'].forEach(signal => {
-            process.on(signal, async () => {
-                await this.onExit(actionName);
-
-                process.exit();
-            });
-        });
-    }
-
-    async onExit(actionName) {
-        // only log this if we started properly
-        if (this.ready) {
-            console.log();
-            console.log();
-            process.stdout.write("Shutting down...");
-        }
-
-        try {
-            await this.restoreAction(actionName);
-            await this.invoker.stop();
-
-            // only log this if we started properly
-            if (this.ready) {
-                console.log(`Done`);
-            }
-        } catch (e) {
-            if (this.argv.verbose) {
-                console.error("Error while terminating:");
-                console.error(e);
-            } else {
-                console.error("Error while terminating:", e.message);
-            }
-        }
-    }
-
-    async actionExists(name) {
-        try {
-            await this.wsk.actions.get(name);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    async deleteActionIfExists(name) {
-        if (await this.actionExists(name)) {
-            await this.wsk.actions.delete(name);
-        }
-    }
-
-    async restoreAction(actionName) {
-        if (this.agentInstalled) {
-            if (this.argv.verbose) {
-                console.log();
-                console.log(`Restoring action`);
-            }
-
-            const copy = this.getActionCopyName(actionName);
-
-            try {
-                const original = await this.wsk.actions.get(copy);
-
-                // copy the backup (copy) to the regular action
-                await this.wsk.actions.update({
-                    name: actionName,
-                    action: original
-                });
-
-                // remove the backup
-                await this.wsk.actions.delete(copy);
-
-                // remove any helpers if they exist
-                await this.deleteActionIfExists(`${actionName}_wskdebug_invoked`);
-                await this.deleteActionIfExists(`${actionName}_wskdebug_completed`);
-
-            } catch (e) {
-                console.error("Error while restoring original action:", e);
-            }
-        }
-    }
+    // ------------------------------------------------< polling >------------------
 
     async waitForActivations(actionName) {
         this.activationsSeen = this.activationsSeen || {};
@@ -519,7 +586,7 @@ class Debugger {
         // secondary loop to get next activation
         // the $waitForActivation agent activation will block, but only until
         // it times out, hence we need to retry when it fails
-        while (true) {
+        while (this.running) {
             if (this.argv.verbose) {
                 process.stdout.write(".");
             }
@@ -602,9 +669,17 @@ class Debugger {
                 }
 
             } catch(e) {
-                // special error code 42 from agent=> retry
-                // otherwise log error and abort
-                if (this.getActivationError(e).code !== 42) {
+                // look for special error codes from agent
+                const errorCode = this.getActivationError(e).code;
+                // 42 => retry
+                if (errorCode === 42) {
+                    // do nothing
+                } else if (errorCode === 43) {
+                    // 43 => graceful shutdown (for unit tests)
+                    console.log("Graceful shutdown requested by agent (only for unit tests)");
+                    return null;
+                } else {
+                    // otherwise log error and abort
                     console.error();
                     console.error("Unexpected error while polling agent for activation:");
                     console.dir(e, { depth: null });
@@ -630,13 +705,30 @@ class Debugger {
             console.log(result);
         }
 
-        result.$activationId = activationId;
-        await this.wsk.actions.invoke({
-            name: this.concurrency ? actionName : `${actionName}_wskdebug_completed`,
-            params: result,
-            blocking: true
-        });
+        try {
+            result.$activationId = activationId;
+            await this.wsk.actions.invoke({
+                name: this.concurrency ? actionName : `${actionName}_wskdebug_completed`,
+                params: result,
+                blocking: true
+            });
+        } catch (e) {
+            // look for special error codes from agent
+            const errorCode = this.getActivationError(e).code;
+            // 42 => retry
+            if (errorCode === 42) {
+                // do nothing
+            } else if (errorCode === 43) {
+                // 43 => graceful shutdown (for unit tests)
+                console.log("Graceful shutdown requested by agent (only for unit tests)");
+                this.running = false;
+            } else {
+                console.error("Unexpected error while completing activation:", e);
+            }
+        }
     }
+
+    // ----------------------------------------< openwhisk feature detection >-----------------
 
     async getOpenWhiskVersion() {
         if (this.openwhiskVersion === undefined) {
@@ -683,7 +775,9 @@ class Debugger {
         }
     }
 
-    async startLiveReload() {
+    // ------------------------------------------------< source watching >-----------------
+
+    async startSourceWatching() {
         if (this.watchDir &&
             // each of these triggers listening
             (   this.argv.livereload
@@ -692,14 +786,7 @@ class Debugger {
              || this.argv.invokeParams
              || this.argv.invokeAction )
         ) {
-
-            // run build initially
-            if (this.argv.onBuild) {
-                console.info("=> Build:", this.argv.onBuild);
-                spawnSync(this.argv.onBuild, {shell: true, stdio: "inherit"});
-            }
-
-            const liveReloadServer = livereload.createServer({
+            this.liveReloadServer = livereload.createServer({
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,
                 exclusions: [this.argv.buildPath],
@@ -707,13 +794,13 @@ class Debugger {
                 //       for now it's just a list of all standard openwhisk supported languages
                 extraExts: ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
             });
-            liveReloadServer.watch(this.watchDir);
+            this.liveReloadServer.watch(this.watchDir);
 
             // overwrite function to get notified on changes
-            const refresh = liveReloadServer.refresh;
+            const refresh = this.liveReloadServer.refresh;
             const argv = this.argv;
             const wsk = this.wsk;
-            liveReloadServer.refresh = function(filepath) {
+            this.liveReloadServer.refresh = function(filepath) {
                 try {
                     let result = [];
                     // call original function if we are listening
@@ -761,10 +848,31 @@ class Debugger {
             };
 
             if (this.argv.livereload) {
-                console.info(`LiveReload enabled for ${this.watchDir} on port ${liveReloadServer.config.port}`);
+                console.info(`LiveReload enabled for ${this.watchDir} on port ${this.liveReloadServer.config.port}`);
             }
         }
     }
+
+    // ------------------------------------------------< utils >-----------------
+
+    async tryCatch(task, message="Error during shutdown:") {
+        try {
+            if (typeof task === "function") {
+                task();
+            } else {
+                await task;
+            }
+        } catch (e) {
+            console.log(e);
+            if (this.argv.verbose) {
+                console.error(message);
+                console.error(e);
+            } else {
+                console.error(message, e.message);
+            }
+        }
+    }
+
 }
 
 module.exports = Debugger;

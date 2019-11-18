@@ -1,4 +1,5 @@
-![](https://img.shields.io/badge/cli-wskdebug-brightgreen) [![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Actions Status](https://github.com/adobe/wskdebug/workflows/CI/badge.svg)](https://github.com/adobe/wskdebug/actions)
+![](https://img.shields.io/badge/cli-wskdebug-brightgreen) [![npm version](https://img.shields.io/npm/v/@adobe/wskdebug)](https://www.npmjs.com/package/@adobe/wskdebug) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Actions Status](https://github.com/adobe/wskdebug/workflows/CI/badge.svg)](https://github.com/adobe/wskdebug/actions) [![codecov](https://codecov.io/gh/adobe/wskdebug/branch/master/graph/badge.svg)](https://codecov.io/gh/adobe/wskdebug)
+
 
 wskdebug
 ========

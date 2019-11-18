@@ -15,11 +15,12 @@
     ],
     "main": "index.js",
     "bin": {
-        "wskdebug": "./index.js"
+        "wskdebug": "./cli.js"
     },
     "scripts": {
         "pretest": "eslint ./",
-        "test": "node ./index.js && node ./index.js --version"
+        "test": "nyc --reporter=text mocha --reporter mocha-multi-reporters --reporter-options configFile=test/multireporterconfig.json --file test/logfile.setup.js test/**/*.test.js",
+        "report-coverage": "nyc report --reporter=json && codecov -f coverage/coverage-final.json"
     },
     "dependencies": {
         "fetch-retry": "^2.2.0",
@@ -31,9 +32,18 @@
         "yargs": "^13.2.4"
     },
     "devDependencies": {
+        "clone": "^2.1.2",
+        "codecov": "^3.6.1",
         "eslint": "^5.16.0",
         "eslint-config-problems": "^3.0.1",
-        "eslint-plugin-mocha": "^5.3.0"
+        "eslint-plugin-mocha": "^5.3.0",
+        "get-port": "^5.0.0",
+        "mocha": "^6.2.2",
+        "mocha-multi-reporters": "^1.1.7",
+        "nock": "^11.7.0",
+        "nyc": "^14.1.1",
+        "strip-ansi": "^6.0.0",
+        "tmp": "^0.1.0"
     },
     "publishConfig": {
         "access": "public"

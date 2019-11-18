@@ -77,11 +77,6 @@ class OpenWhiskInvoker {
         this.containerName = this.asContainerName(`wskdebug-${this.action.name}-${Date.now()}`);
     }
 
-    async start() {
-        await this.startContainer();
-        await this.init();
-    }
-
     static async checkIfAvailable() {
         try {
             execute("docker info", {stdio: 'ignore'});
@@ -121,7 +116,7 @@ class OpenWhiskInvoker {
     async startContainer() {
         const action = this.action;
 
-        // this must run after initial build was kicked off in Debugger.startLiveReload()
+        // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
         if (this.sourcePath && fs.lstatSync(this.sourcePath).isFile()) {
             this.sourceDir = path.dirname(this.sourcePath);
@@ -233,13 +228,20 @@ class OpenWhiskInvoker {
                 ${this.image}
                 ${this.debug.command}
             `,
+            // live stream view for docker image download output
             { stdio: showDockerRunOutput ? "inherit" : null },
             this.verbose
         );
 
         this.containerRunning = true;
 
-        spawn("docker", ["logs", "-t", "-f", this.name()], {stdio: "inherit"});
+        spawn("docker", ["logs", "-t", "-f", this.name()], {
+            stdio: [
+                "inherit", // stdin
+                global.mochaLogFile || "inherit", // stdout
+                global.mochaLogFile || "inherit"  // stderr
+            ]
+        });
     }
 
     async logInfo() {
@@ -251,7 +253,7 @@ class OpenWhiskInvoker {
         console.info(`Debug port : localhost:${this.debug.port}`)
     }
 
-    async init() {
+    async init(actionWithCode) {
         let action;
         if (this.sourcePath && this.debug.mountAction) {
             action = resolveValue(this.debug.mountAction, this);
@@ -264,9 +266,9 @@ class OpenWhiskInvoker {
                 console.log(`Pushing action code to local debug container: ${this.action.name}`);
             }
             action = {
-                binary: this.action.exec.binary,
-                main:   this.action.exec.main || "main",
-                code:   this.action.exec.code,
+                binary: actionWithCode.exec.binary,
+                main:   actionWithCode.exec.main || "main",
+                code:   actionWithCode.exec.code,
             };
         }
 

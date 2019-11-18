@@ -1,0 +1,3 @@
+APIHOST=https://example.com
+NAMESPACE=test
+AUTH=super-secret-key
