@@ -378,6 +378,30 @@ Options:
 <a name="troubleshooting"></a>
 ## Troubleshooting
 
+### Cannot install globally
+
+If you get an error during `npm install -g @adobe/wskdebug` like this:
+
+```
+ngrok - downloading binary https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-darwin-amd64.zip
+ngrok - error storing binary to local file [Error: EACCES: permission denied, open '/usr/local/lib/node_modules/@adobe/wskdebug/node_modules/ngrok/bin/aHR0cHM6Ly9iaW4uZXF1aW5veC5pby9jLzRWbUR6QTdpYUhiL25ncm9rLXN0YWJsZS1kYXJ3aW4tYW1kNjQuemlw.zip'] {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'open',
+  path: '/usr/local/lib/node_modules/@adobe/wskdebug/node_modules/ngrok/bin/aHR0cHM6Ly9iaW4uZXF1aW5veC5pby9jLzRWbUR6QTdpYUhiL25ncm9rLXN0YWJsZS1kYXJ3aW4tYW1kNjQuemlw.zip'
+}
+```
+
+run this command below before trying the install again:
+
+```
+sudo chown -R $(whoami) /usr/{lib/node_modules}
+```
+
+
+The dependency `ngrok` requires full write permission in `/usr/local/lib/node_modules` during its custom install phase. This is a [known ngrok issue](https://github.com/inconshreveable/ngrok/issues/429).
+
+
 ### Does not work, namespace shows as undefined
 
 Your `~/.wskprops` must include the correct `NAMESPACE` field. See [issue #3](https://github.com/adobe/wskdebug/issues/3).
