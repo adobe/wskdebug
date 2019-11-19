@@ -66,6 +66,8 @@ class OpenWhiskInvoker {
         this.sourcePath = options.buildPath || options.sourcePath;
         if (this.sourcePath) {
             this.sourceDir = options.buildPathRoot ? path.resolve(options.buildPathRoot) : process.cwd();
+            // ensure sourcePath is relative to sourceDir
+            this.sourceFile = path.relative(this.sourceDir, this.sourcePath);
         }
 
         this.main = options.main;
@@ -117,12 +119,6 @@ class OpenWhiskInvoker {
 
         // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
-
-        // source mounting is optional, driven by sourcePath set or not
-        if (this.sourcePath) {
-            // ensure sourcePath is relative to sourceDir
-            this.sourceFile = path.relative(this.sourceDir, this.sourcePath);
-        }
 
         // kind and image
 
