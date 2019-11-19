@@ -44,8 +44,6 @@ class Debugger {
         if (argv.ignoreCerts) {
             this.wskProps.ignore_certs = true;
         }
-
-        this.watchDir = process.cwd();
     }
 
     async start() {
@@ -768,7 +766,8 @@ class Debugger {
     // ------------------------------------------------< source watching >-----------------
 
     async startSourceWatching() {
-        if (this.watchDir &&
+        const watch = this.argv.watch || process.cwd();
+        if (watch &&
             // each of these triggers listening
             (   this.argv.livereload
              || this.argv.onBuild
@@ -779,12 +778,10 @@ class Debugger {
             this.liveReloadServer = livereload.createServer({
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,
-                exclusions: [this.argv.buildPath],
-                // TODO: we might need a cli arg to extend this. unfortunately wildcards don't work
-                //       for now it's just a list of all standard openwhisk supported languages
-                extraExts: ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
+                exclusions: [this.argv.buildPath, this.argv.buildPathRoot],
+                extraExts: this.argv.watchExts || ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
             });
-            this.liveReloadServer.watch(this.watchDir);
+            this.liveReloadServer.watch(watch);
 
             // overwrite function to get notified on changes
             const refresh = this.liveReloadServer.refresh;
@@ -793,6 +790,11 @@ class Debugger {
             this.liveReloadServer.refresh = function(filepath) {
                 try {
                     let result = [];
+
+                    if (argv.verbose) {
+                        console.log("File modified:", filepath);
+                    }
+
                     // call original function if we are listening
                     if (argv.livereload) {
                         result = refresh.call(this, filepath);
@@ -838,7 +840,7 @@ class Debugger {
             };
 
             if (this.argv.livereload) {
-                console.info(`LiveReload enabled for ${this.watchDir} on port ${this.liveReloadServer.config.port}`);
+                console.info(`LiveReload enabled for ${watch} on port ${this.liveReloadServer.config.port}`);
             }
         }
     }

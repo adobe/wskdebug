@@ -101,7 +101,7 @@ function yargsOptions(yargs) {
       coerce: path.resolve // ensure absolute path
     });
 
-    // livereload
+    // source watching
     yargs.option("l", {
         type: "boolean",
         implies: "source-path",
@@ -128,6 +128,18 @@ function yargsOptions(yargs) {
         type: "string",
         group: "LiveReload options:",
         describe: "Shell command to run upon changes to [source-path]"
+    });
+    yargs.option("watch", {
+        type: "string",
+        array: true,
+        group: "LiveReload options:",
+        describe: "Glob pattern(s) to watch for source modifications"
+    });
+    yargs.option("watch-exts", {
+        type: "string",
+        array: true,
+        group: "LiveReload options:",
+        describe: "File extensions to watch for modifications"
     });
 
     // Debugger options
