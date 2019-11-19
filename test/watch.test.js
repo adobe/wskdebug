@@ -402,6 +402,145 @@ describe('source watching', function() {
         test.assertAllNocksInvoked();
     });
 
+    it("should run shell command when a file with a custom extension set in --watch-exts changes", async function() {
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        const tmpFile = tmp.fileSync().name;
+        tmp.setGracefulCleanup();
+
+        // wskdebug myaction action.js -r 'echo ...' -p ${test.port}
+        process.chdir("test/nodejs/watch");
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            sourcePath: `src/action.js`,
+            onChange: `echo "CORRECT" > ${tmpFile}`,
+            watchExts: "xyz"
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // wait a bit
+        await test.sleep(500);
+
+        // simulate a source file change
+        test.touchFile("action.xyz");
+
+        // wait for result of shell file command
+        let ranShellCommand = false;
+        while (!ranShellCommand && test.hasNotTimedOut(this)) {
+            await test.sleep(100);
+            if (fs.readFileSync(tmpFile).toString().trim() === "CORRECT") {
+                ranShellCommand = true;
+            }
+        }
+
+        await dbgr.stop();
+
+        assert.ok(ranShellCommand, "shell command was not run on source change");
+        test.assertAllNocksInvoked();
+    });
+
+    it("should trigger when a source file inside --watch dir is changed", async function() {
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        const tmpFile = tmp.fileSync().name;
+        tmp.setGracefulCleanup();
+
+        // wskdebug myaction action.js -r 'echo ...' -p ${test.port}
+        process.chdir("test/nodejs/watch");
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            sourcePath: `src/action.js`,
+            onChange: `echo "CORRECT" > ${tmpFile}`,
+            watch: "src"
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // wait a bit
+        await test.sleep(500);
+
+        // simulate a source file change
+        test.touchFile("src/action.js");
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        let ranShellCommand = false;
+        while (!ranShellCommand && test.hasNotTimedOut(this)) {
+            await test.sleep(100);
+            if (fs.readFileSync(tmpFile).toString().trim() === "CORRECT") {
+                ranShellCommand = true;
+            }
+        }
+
+        await dbgr.stop();
+
+        assert.ok(ranShellCommand, "shell command was not run on source change");
+        test.assertAllNocksInvoked();
+    });
+
+    it("should not trigger when a source file outside --watch dir is changed", async function() {
+        this.timeout(10000);
+        const deadline = Date.now() + this.timeout()/2;
+
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        const tmpFile = tmp.fileSync().name;
+        tmp.setGracefulCleanup();
+
+        // wskdebug myaction action.js -r 'echo ...' -p ${test.port}
+        process.chdir("test/nodejs/watch");
+        const argv = {
+            port: test.port,
+            action: "myaction",
+            sourcePath: `src/action.js`,
+            onChange: `echo "CORRECT" > ${tmpFile}`,
+            watch: "src"
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // wait a bit
+        await test.sleep(500);
+
+        // simulate a source file change
+        test.touchFile("dummy.js");
+
+        // eslint-disable-next-line no-unmodified-loop-condition
+        let ranShellCommand = false;
+        while (Date.now() < deadline) {
+            await test.sleep(100);
+            if (fs.readFileSync(tmpFile).toString().trim() === "CORRECT") {
+                ranShellCommand = true;
+                // this would be wrong, but let's abort then
+                break;
+            }
+        }
+
+        await dbgr.stop();
+
+        assert.ok(!ranShellCommand, "shell command was run on unwatched source change");
+    });
+
     it("should run shell command on start when --on-start is set", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
