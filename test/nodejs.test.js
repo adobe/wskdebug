@@ -105,7 +105,7 @@ describe('nodejs', function() {
           true // binary
       );
 
-      process.chdir("test/nodejs/require-onelevel");
+      process.chdir("test/nodejs/commonjs-onelevel");
       await wskdebug(`myaction lib/action.js -p ${test.port}`);
 
       test.assertAllNocksInvoked();
@@ -121,7 +121,7 @@ describe('nodejs', function() {
             { msg: "CORRECT" }
         );
 
-        process.chdir("test/nodejs/require-onelevel");
+        process.chdir("test/nodejs/commonjs-onelevel");
         await wskdebug(`myaction lib/action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
@@ -138,7 +138,7 @@ describe('nodejs', function() {
             true // binary
         );
 
-        process.chdir("test/nodejs/require-onelevel");
+        process.chdir("test/nodejs/commonjs-onelevel");
         await wskdebug(`myaction ${process.cwd()}/lib/action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
@@ -154,7 +154,7 @@ describe('nodejs', function() {
             { msg: "CORRECT" }
         );
 
-        process.chdir("test/nodejs/require-onelevel");
+        process.chdir("test/nodejs/commonjs-onelevel");
         fse.removeSync("build");
 
         // simulate a build that moves things into a separate directory with different naming
