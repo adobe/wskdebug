@@ -343,13 +343,15 @@ Action options:
   --build-path-root  Build path mount root, requires --build-path                 [string]
 
 LiveReload options:
-  -l         Enable browser LiveReload on [source-path]                          
-  --lr-port  Port for browser LiveReload (defaults to 35729)                      [number]
-  -P         Invoke action with these parameters on changes to [source-path].
-             Argument can be json string or name of json file.                    [string]
-  -a         Name of custom action to invoke upon changes to [source-path].
-             Defaults to <action> if -P is set.                                   [string]
-  -r         Shell command to run upon changes to [source-path]                   [string]
+  -l            Enable browser LiveReload on [source-path]                       [boolean]
+  --lr-port     Port for browser LiveReload (defaults to 35729)                   [number]
+  -P            Invoke action with these parameters on changes to [source-path].
+                Argument can be json string or name of json file.                 [string]
+  -a            Name of custom action to invoke upon changes to [source-path].
+                Defaults to <action> if -P is set.                                [string]
+  -r            Shell command to run upon changes to [source-path]                [string]
+  --watch       Glob pattern(s) to watch for source modifications                  [array]
+  --watch-exts  File extensions to watch for modifications                         [array]
 
 Debugger options:
   -p, --port       Debug port exposed from container that debugging clients connect to.
@@ -366,13 +368,13 @@ Agent options:
   -c, --condition  Hit condition to trigger debugger. Javascript expression evaluated
                    against input parameters. Example: 'debug == 'true'            [string]
   --agent-timeout  Debugging agent timeout (seconds). Default: 5 min              [number]
-  --ngrok          Use ngrok.com for agent forwarding.                           
+  --ngrok          Use ngrok.com for agent forwarding.                           [boolean]
   --ngrok-region   Ngrok region to use. Defaults to 'us'.                         [string]
 
 Options:
-  -v, --verbose  Verbose output. Logs activation parameters and result           
-  --version      Show version number                                             
-  -h, --help     Show help
+  -v, --verbose  Verbose output. Logs activation parameters and result           [boolean]
+  --version      Show version number                                             [boolean]
+  -h, --help     Show help                                                       [boolean]
 ```
 
 <a name="troubleshooting"></a>
