@@ -62,8 +62,7 @@ function yargsOptions(yargs) {
     });
     yargs.positional('source-path', {
         describe: 'Path to local action sources, file or folder (optional)',
-        type: 'string',
-        coerce: path.resolve // ensure absolute path
+        type: 'string'
     });
 
     // action options
@@ -93,8 +92,13 @@ function yargsOptions(yargs) {
     yargs.option("build-path", {
         type: "string",
         group: "Action options:",
-        describe: "Path to built action, result of --on-build command",
-        coerce: path.resolve // ensure absolute path
+        describe: "Path to built action, result of --on-build command"
+    });
+    yargs.option("build-path-root", {
+      type: "string",
+      group: "Action options:",
+      describe: "Build path mount root, requires --build-path",
+      coerce: path.resolve // ensure absolute path
     });
 
     // livereload

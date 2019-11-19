@@ -14,7 +14,6 @@
 
 const openwhisk = require("openwhisk");
 const wskprops = require('./wskprops');
-const path = require('path');
 const fs = require('fs-extra');
 const OpenWhiskInvoker = require('./invoker');
 const { spawnSync } = require('child_process');
@@ -46,16 +45,7 @@ class Debugger {
             this.wskProps.ignore_certs = true;
         }
 
-        const watchPath = this.argv.sourcePath;
-        if (watchPath) {
-            // source path is always the path to watch
-            // we only watch entire directories
-            if (fs.lstatSync(watchPath).isFile()) {
-                this.watchDir = path.dirname(watchPath);
-            } else {
-                this.watchDir = watchPath;
-            }
-        }
+        this.watchDir = process.cwd();
     }
 
     async start() {

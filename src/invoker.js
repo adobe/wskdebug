@@ -16,7 +16,6 @@ const { spawn, execSync } = require('child_process');
 const fetch = require('fetch-retry');
 const kinds = require('./kinds/kinds');
 const path = require('path');
-const fs = require('fs-extra');
 
 const RUNTIME_PORT = 8080;
 const INIT_RETRY_DELAY_MS = 100;
@@ -65,6 +64,11 @@ class OpenWhiskInvoker {
 
         // the build path can be separate, if not, same as the source/watch path
         this.sourcePath = options.buildPath || options.sourcePath;
+        if (this.sourcePath) {
+            this.sourceDir = options.buildPathRoot ? path.resolve(options.buildPathRoot) : process.cwd();
+            // ensure sourcePath is relative to sourceDir
+            this.sourceFile = path.relative(this.sourceDir, this.sourcePath);
+        }
 
         this.main = options.main;
 
@@ -115,13 +119,6 @@ class OpenWhiskInvoker {
 
         // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
-        if (this.sourcePath && fs.lstatSync(this.sourcePath).isFile()) {
-            this.sourceDir = path.dirname(this.sourcePath);
-            this.sourceFile = path.basename(this.sourcePath);
-        } else {
-            this.sourceDir = this.sourcePath;
-            this.sourceFile = "";
-        }
 
         // kind and image
 

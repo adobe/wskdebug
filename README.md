@@ -284,7 +284,8 @@ Please note that if source mounting is enabled, this will not have an effect on 
 For some projects, the raw source code that developers edit in the IDE goes through a build process before being deployed as OpenWhisk action. To support this, `wskdebug` has these arguments:
 
 * `--on-build`: Shell command for custom action build step
-* `--build-path` Path to built action, result of --on-build command
+* `--build-path`: Path to built action, result of --on-build command
+* `--build-path-root`: Build path mount root, ignored if build-path is not set
 
 As a simple example, imagine the build process for an action with source file `action.js` deployed as `myaction` is simply renaming the file and placing it as `index.js` in a `build/` directory:
 
@@ -300,6 +301,15 @@ Then you would invoke `wskdebug` like this:
 ```
 wskdebug myaction action.js --on-build "mkdir build/; cp action.js build/index.js" --build-path build/index.js
 ```
+
+<a name="source-mount-root"></a>
+### Source mount root
+
+When source mounting is enabled, the default behavior is to mount the current working directory into the executing
+container. This means that your action can have dependencies to any file living under the cwd.
+
+If `--build-path` was specified the build file's directory is mounted instead of cwd, alternatively you can specify
+another mount root location with `--build-path-root`.
 
 <a name="help-output"></a>
 ### Help output
@@ -325,11 +335,12 @@ Arguments:
   source-path  Path to local action sources, file or folder (optional)            [string]
 
 Action options:
-  -m, --main    Name of action entry point                                        [string]
-  -k, --kind    Action kind override, needed for blackbox images                  [string]
-  -i, --image   Docker image to use as action container                           [string]
-  --on-build    Shell command for custom action build step                        [string]
-  --build-path  Path to built action, result of --on-build command                [string]
+  -m, --main         Name of action entry point                                   [string]
+  -k, --kind         Action kind override, needed for blackbox images             [string]
+  -i, --image        Docker image to use as action container                      [string]
+  --on-build         Shell command for custom action build step                   [string]
+  --build-path       Path to built action, result of --on-build command           [string]
+  --build-path-root  Build path mount root, requires --build-path                 [string]
 
 LiveReload options:
   -l         Enable browser LiveReload on [source-path]                          
@@ -361,7 +372,7 @@ Agent options:
 Options:
   -v, --verbose  Verbose output. Logs activation parameters and result           
   --version      Show version number                                             
-  -h, --help     Show help                                                       
+  -h, --help     Show help
 ```
 
 <a name="troubleshooting"></a>
@@ -497,8 +508,9 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `invoker.main` | `string` | name of the `main` entry point (from cli args) |
-| `invoker.sourceFile` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
-| `invoker.sourceDir` | `string` | absolute path to `<source-file>` from the cli args if it's a directory, or the containing directory if it's a file |
+| `invoker.sourcePath` | `string` | path to the source file either `<source-path>` or the `--build-path` |
+| `invoker.sourceDir` | `string` | absolute path to root directory to mount in the container, either current working directory or `--build-path-root` |
+| `invoker.sourceFile` | `string` | relative path from `sourceDir` to `sourcePath` |
 | `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
 | `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |
 | `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
@@ -513,4 +525,3 @@ Contributions are welcomed! Read the [Contributing Guide](.github/CONTRIBUTING.m
 ## Licensing
 
 This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
-
