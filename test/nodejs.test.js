@@ -94,7 +94,7 @@ describe('nodejs', function() {
         test.assertAllNocksInvoked();
     });
 
-    it("should mount local sources with a dependency in the cwd reported as binary", async function() {
+    it("should mount local sources with a require(../) dependency", async function() {
       this.timeout(10000);
       test.mockActionAndInvocation(
           "myaction",
@@ -110,6 +110,62 @@ describe('nodejs', function() {
 
       test.assertAllNocksInvoked();
     });
+
+    it("should mount local sources with a require(../) dependency reported as non binary", async function() {
+        this.timeout(10000);
+        test.mockActionAndInvocation(
+            "myaction",
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT" }
+        );
+
+        process.chdir("test/nodejs/require-onelevel");
+        await wskdebug(`myaction lib/action.js -p ${test.port}`);
+
+        test.assertAllNocksInvoked();
+    });
+
+    it("should mount local sources with a require(../) dependency using absolute paths", async function() {
+        this.timeout(10000);
+        test.mockActionAndInvocation(
+            "myaction",
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT" },
+            true // binary
+        );
+
+        process.chdir("test/nodejs/require-onelevel");
+        await wskdebug(`myaction ${process.cwd()}/lib/action.js -p ${test.port}`);
+
+        test.assertAllNocksInvoked();
+      });
+
+      it("should mount local sources with a require(../) dependency and --build-path-root set", async function() {
+        this.timeout(10000);
+        test.mockActionAndInvocation(
+            "myaction",
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT" }
+        );
+
+        process.chdir("test/nodejs/require-onelevel");
+        fse.removeSync("build");
+
+        // simulate a build that moves things into a separate directory with different naming
+        const onBuild = "mkdir -p build/out; cp -R lib build/out/folder; cp dependency.js build/out";
+        await wskdebug(`myaction lib/action.js --on-build '${onBuild}' --build-path build/out/folder/action.js --build-path-root build/out -p ${test.port}`);
+
+        fse.removeSync("build");
+        test.assertAllNocksInvoked();
+    });
+
+
 
     it("should mount and run local sources with a comment on the last line", async function() {
         test.mockActionAndInvocation(
@@ -309,8 +365,8 @@ describe('nodejs', function() {
             action: "myaction",
             // copy a different file with "CORRECT in it"
             onBuild: `mkdir -p build; cp action-build.txt build/action.js`,
-            buildPath: `${process.cwd()}/build/action.js`,
-            sourcePath: `${process.cwd()}/action.js`,
+            buildPath: `build/action.js`,
+            sourcePath: `action.js`,
             invokeParams: '{ "key": "invocationOnSourceModification" }'
         };
 
@@ -331,12 +387,11 @@ describe('nodejs', function() {
 
         await dbgr.stop();
 
+        fse.removeSync("build");
         assert.ok(invokedAction, "action was not invoked on source change");
         assert.ok(completedAction, "action invocation was not handled and completed");
         test.assertAllNocksInvoked();
     });
-
-    // TODO: test buildPathRoot
 
     // TODO: test -l livereload connection
 

@@ -16,7 +16,6 @@ const { spawn, execSync } = require('child_process');
 const fetch = require('fetch-retry');
 const kinds = require('./kinds/kinds');
 const path = require('path');
-const fs = require('fs-extra');
 
 const RUNTIME_PORT = 8080;
 const INIT_RETRY_DELAY_MS = 100;
@@ -50,18 +49,6 @@ function resolveValue(value, ...args) {
     }
 }
 
-function splitPath (fullPath) {
-  let fileName = ''
-  let dirPath = ''
-  if (fs.lstatSync(fullPath).isFile()) {
-    dirPath = path.dirname(fullPath);
-    fileName = path.basename(fullPath);
-  } else {
-    dirPath = fullPath
-  }
-  return [dirPath, fileName]
-}
-
 class OpenWhiskInvoker {
     constructor(actionName, action, options, wskProps, wsk) {
         this.actionName = actionName;
@@ -77,16 +64,8 @@ class OpenWhiskInvoker {
 
         // the build path can be separate, if not, same as the source/watch path
         this.sourcePath = options.buildPath || options.sourcePath;
-        this.hasBuildPath = Boolean(options.buildPath);
-        this.buildPathRoot = options.buildPathRoot;
-
-        if (this.sourcePath && !this.hasBuildPath) {
-          [this.sourceDir, this.sourceFile] = splitPath(this.sourcePath)
-          this.sourceRoot = process.cwd()
-        } else {
-          this.sourceDir = ""
-          this.sourceFile = ""
-          this.sourceRoot = ""
+        if (this.sourcePath) {
+            this.sourceDir = options.buildPathRoot ? path.resolve(options.buildPathRoot) : process.cwd();
         }
 
         this.main = options.main;
@@ -138,9 +117,11 @@ class OpenWhiskInvoker {
 
         // this must run after initial build was kicked off in Debugger.startSourceWatching()
         // so that built files are present
-        if (this.sourcePath && this.hasBuildPath) {
-          [this.sourceDir, this.sourceFile] = splitPath(this.sourcePath)
-          this.sourceRoot = this.buildPathRoot || this.sourceDir
+
+        // source mounting is optional, driven by sourcePath set or not
+        if (this.sourcePath) {
+            // ensure sourcePath is relative to sourceDir
+            this.sourceFile = path.relative(this.sourceDir, this.sourcePath);
         }
 
         // kind and image

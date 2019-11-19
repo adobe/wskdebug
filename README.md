@@ -340,7 +340,7 @@ Action options:
   -i, --image        Docker image to use as action container                      [string]
   --on-build         Shell command for custom action build step                   [string]
   --build-path       Path to built action, result of --on-build command           [string]
-  --build-path-root  Build path mount root, ignored if build-path is not set      [string]
+  --build-path-root  Build path mount root, requires --build-path                 [string]
 
 LiveReload options:
   -l         Enable browser LiveReload on [source-path]                          
@@ -508,10 +508,9 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 | Variable | Type | Description |
 |----------|------|-------------|
 | `invoker.main` | `string` | name of the `main` entry point (from cli args) |
-| `invoker.sourcePath` | `string` | absolute path to the `<source-file>` from the cli args if it's a file |
-| `invoker.sourceDir` | `string` | absolute path to `<source-file>` from the cli args if it's a directory, or the containing directory if it's a file |
-| `invoker.sourceFile` | `string` | name of the `<source-file>` from the cli args if it's a file, or empty if it's a directory |
-| `invoker.sourceRoot` | `string` | absolute path to the root of the sources, which usually refers to the cwd from where the cli was run unless `invoker.hasBuildPath` is set to true, in which case it takes the value of `invoker.buildPathRoot` or `invoker.sourceDir` if `invoker.buildPathRoot` is undefined |
+| `invoker.sourcePath` | `string` | path to the source file either `<source-path>` or the `--build-path` |
+| `invoker.sourceDir` | `string` | absolute path to root directory to mount in the container, either current working directory or `--build-path-root` |
+| `invoker.sourceFile` | `string` | relative path from `sourceDir` to `sourcePath` |
 | `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
 | `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |
 | `invoker.debug.internalPort` | `number` | `--internal-port` from cli args or if not specified, the `port` from the debug kind js |
