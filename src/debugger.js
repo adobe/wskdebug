@@ -778,7 +778,7 @@ class Debugger {
             this.liveReloadServer = livereload.createServer({
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,
-                exclusions: [this.argv.buildPath, this.argv.buildPathRoot],
+                exclusions: [this.argv.buildPath],
                 extraExts: this.argv.watchExts || ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
             });
             this.liveReloadServer.watch(watch);
