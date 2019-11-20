@@ -15,6 +15,7 @@ CODE_OF_CONDUCT.md
 build/
 test/
 .circleci/
+.webpack
 
 codecov.yml
 coverage.lcov
