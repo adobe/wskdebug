@@ -779,7 +779,8 @@ class Debugger {
                 port: this.argv.livereloadPort,
                 noListen: !this.argv.livereload,
                 exclusions: [this.argv.buildPath],
-                extraExts: this.argv.watchExts || ["json", "go", "java", "scala", "php", "py", "rb", "swift", "rs", "cs", "bal"]
+                exts: this.argv.watchExts || ["json", "js", "ts", "coffee", "py", "rb", "erb", "go", "java", "scala", "php", "swift", "rs", "cs", "bal", "php", "php5"],
+                extraExts: []
             });
             this.liveReloadServer.watch(watch);
 

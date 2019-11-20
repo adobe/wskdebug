@@ -275,10 +275,10 @@ There are 3 different live reload mechanism possible that will trigger something
 * Action invocation using `-P` and `-a`: specify `-P` pointing to a json file with the invocation parameters and the debugged action will be automatically invoked with these parameters. This will also automatically invoke if that json file is modified. If you need to trigger a different action (because there is chain of actions before the one you are debugging), define it using `-a`.
 * Arbitrary shell command using `-r`: this can be used to invoke web APIs implemented by web actions using `curl`, or any scenario where something needs to be triggered so that the debugged action gets activated downstream.
 
-By default it watches for changes underneath the current working directory for these file extensions:
+By default it watches for changes underneath the current working directory for these file extensions (reflecting common OpenWhisk kinds and json for `-P params.json` auto-execution):
 
 ```
-html, css, js, png, gif, jpg, php, php5, py, rb, erb, coffee, json, go, java, scala, php, swift, rs, cs, bal
+json, js, ts, coffee, py, rb, erb, go, java, scala, php, swift, rs, cs, bal, php, php5
 ```
 
 The directory or directories to watch can be changed using the `--watch` argument, which can be a directory path glob. You can also specify multiple via `--watch one --watch two` or `--watch one two`.
