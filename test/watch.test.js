@@ -447,6 +447,56 @@ describe('source watching', function() {
         test.assertAllNocksInvoked();
     });
 
+    it("should not run shell command when a file with an extension not set in --watch-exts changes", async function() {
+        this.timeout(10000);
+        const deadline = Date.now() + this.timeout()/2;
+
+        const action = "myaction";
+        const code = `const main = () => ({ msg: 'WRONG' });`;
+
+        test.mockAction(action, code);
+        test.expectAgent(action, code);
+
+        const tmpFile = tmp.fileSync().name;
+        console.log(tmpFile);
+        tmp.setGracefulCleanup();
+
+        // wskdebug myaction action.js -r 'echo ...' -p ${test.port}
+        process.chdir("test/nodejs/watch");
+        const argv = {
+            verbose: true,
+            port: test.port,
+            action: "myaction",
+            sourcePath: `src/action.js`,
+            onChange: `echo "CORRECT" > ${tmpFile}`,
+            watchExts: "xyz"
+        };
+
+        const dbgr = new Debugger(argv);
+        await dbgr.start();
+        // no need to run() for this test
+
+        // wait a bit
+        await test.sleep(500);
+
+        // simulate a source file change but != xyz extension set above
+        test.touchFile("src/action.js");
+
+        // wait for result of shell file command
+        let ranShellCommand = false;
+        while (Date.now() < deadline) {
+            await test.sleep(100);
+            if (fs.readFileSync(tmpFile).toString().trim() === "CORRECT") {
+                ranShellCommand = true;
+            }
+        }
+
+        await dbgr.stop();
+
+        assert.ok(!ranShellCommand, "shell command was incorrectly run on source change");
+        test.assertAllNocksInvoked();
+    });
+
     it("should trigger when a source file inside --watch dir is changed", async function() {
         const action = "myaction";
         const code = `const main = () => ({ msg: 'WRONG' });`;
