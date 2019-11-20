@@ -144,7 +144,7 @@ describe('nodejs', function() {
         test.assertAllNocksInvoked();
       });
 
-      it("should mount local sources with a require(../) dependency and --build-path-root set", async function() {
+      it("should mount local sources with a require(../) dependency and run build with --on-build set", async function() {
         this.timeout(10000);
         test.mockActionAndInvocation(
             "myaction",
@@ -159,7 +159,7 @@ describe('nodejs', function() {
 
         // simulate a build that moves things into a separate directory with different naming
         const onBuild = "mkdir -p build/out; cp -R lib build/out/folder; cp dependency.js build/out";
-        await wskdebug(`myaction lib/action.js --on-build '${onBuild}' --build-path build/out/folder/action.js --build-path-root build/out -p ${test.port}`);
+        await wskdebug(`myaction lib/action.js --on-build '${onBuild}' --build-path build/out/folder/action.js -p ${test.port}`);
 
         fse.removeSync("build");
         test.assertAllNocksInvoked();

@@ -85,6 +85,7 @@ The action to debug (e.g. `myaction`) must already be deployed.
 + [Node.js: Chrome DevTools](#nodejs-chrome-devtools)
 + [Node.js: node-inspect command line](#nodejs-node-inspect-command-line)
 + [Unsupported action kinds](#unsupported-action-kinds)
++ [Source mounting](#source-mounting)
 + [Live reloading](#live-reloading)
 + [Hit condition](#hit-condition)
 + [Custom build step](#custom-build-step)
@@ -102,7 +103,7 @@ Add the configuration below to your [launch.json](https://code.visualstudio.com/
             "request": "launch",
             "name": "wskdebug MYACTION",
             "runtimeExecutable": "wskdebug",
-            "args": [ "MYACTION", "${workspaceFolder}/ACTION.js", "-l" ],
+            "args": [ "MYACTION", "ACTION.js", "-l" ],
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "/code",
             "outputCapture": "std"
@@ -134,7 +135,7 @@ Here is a `.vscode/launch.json` example that uses compounds to expose a config s
       "runtimeExecutable": "wskdebug",
       "args": [
         "mypackage/action1",
-        "${workspaceFolder}/action1.js"
+        "action1.js"
       ],
       "localRoot": "${workspaceFolder}",
       "remoteRoot": "/code",
@@ -147,7 +148,7 @@ Here is a `.vscode/launch.json` example that uses compounds to expose a config s
       "runtimeExecutable": "wskdebug",
       "args": [
         "mypackage/action2",
-        "${workspaceFolder}/action2.js"
+        "action2.js"
       ],
       "localRoot": "${workspaceFolder}",
       "remoteRoot": "/code",
@@ -238,15 +239,51 @@ Once you found a working configuration, feel encouraged to open a pull request t
 
 For automatic code reloading for other languages, `wskdebug` needs to be [extended](#extending-wskdebug-for-other-kinds).
 
+<a name="source-mounting"></a>
+### Source mounting
+
+When a `<source-path>` is provided, `wskdebug` will load the local sources and run them as action (for supported languages/kinds). This enables the hot code reloading feature.
+
+For this to work, you must run `wskdebug` in the root folder of your project, _below_ which all the sources are (e.g. in nodejs anything that is loaded through `require()` statements), and then provide a relative path to the main js file (the one that contains the action `main` function) as `<source-path>` . If you have sources outside the current working directory `wskdebug` is executed in, they would not be visible to the action that `wskdebug` runs.
+
+For example, say you have a folder structure like this:
+
+```
+lib/
+    action/
+        action.js
+    util.js
+    other.js
+```
+
+Then you want to run it in the root like this:
+
+```
+wskdebug myaction lib/action/action.js
+```
+
+Under the hood, `wskdebug` will mount the working directory it is executed in into the local action container (under `/code` inside the container), and then tell it to load the `lib/action/action.js` file as action entry point.
+
+If `--on-build` and `--build-path` are specified, then `--build-path` is used instead of the `<source-path>` for running the action inside the container. It still mounts the current working directory. But `<source-path>` is still relevant for detecting local modifications for [live reloading](#live-reloading).
+
 <a name="live-reloading"></a>
 ### Live reloading
 
-There are 3 different live reload mechanism possible that will trigger something when the `<source-path>` is modified. Any of them enables the hot reloading of code on any new activation.
+There are 3 different live reload mechanism possible that will trigger something when sources are modified. Any of them enables the hot reloading of code on any new activation.
 
 * Browser `LiveReload` using `-l`: works with [LiveReload](http://livereload.com) browser extensions (though we noticed only Chrome worked reliably) that will automatically reload the web page. Great for web actions that render HTML to browsers.
 * Action invocation using `-P` and `-a`: specify `-P` pointing to a json file with the invocation parameters and the debugged action will be automatically invoked with these parameters. This will also automatically invoke if that json file is modified. If you need to trigger a different action (because there is chain of actions before the one you are debugging), define it using `-a`.
 * Arbitrary shell command using `-r`: this can be used to invoke web APIs implemented by web actions using `curl`, or any scenario where something needs to be triggered so that the debugged action gets activated downstream.
 
+By default it watches for changes underneath the current working directory for these file extensions:
+
+```
+html, css, js, png, gif, jpg, php, php5, py, rb, erb, coffee, json, go, java, scala, php, swift, rs, cs, bal
+```
+
+The directory or directories to watch can be changed using the `--watch` argument, which can be a directory path glob. You can also specify multiple via `--watch one --watch two` or `--watch one two`.
+
+The extensions to watch can be changed through the `--watch-exts` argument, e.g. `--watch-exts js ts`.
 
 <a name="hit-condition"></a>
 ### Hit condition
@@ -285,7 +322,6 @@ For some projects, the raw source code that developers edit in the IDE goes thro
 
 * `--on-build`: Shell command for custom action build step
 * `--build-path`: Path to built action, result of --on-build command
-* `--build-path-root`: Build path mount root, ignored if build-path is not set
 
 As a simple example, imagine the build process for an action with source file `action.js` deployed as `myaction` is simply renaming the file and placing it as `index.js` in a `build/` directory:
 
@@ -299,17 +335,19 @@ Replace the copy/rename here with whatever build step is happening. Make sure so
 Then you would invoke `wskdebug` like this:
 
 ```
-wskdebug myaction action.js --on-build "mkdir build/; cp action.js build/index.js" --build-path build/index.js
+wskdebug myaction action.js \
+    --on-build "mkdir build/; cp action.js build/index.js" \
+    --build-path build/index.js
 ```
 
-<a name="source-mount-root"></a>
-### Source mount root
+**Note**: When using `--on-build`, you might have to set `--watch` to the directory that holds the source files and which is not the build directory. Otherwise you could get an endless loop as writing the build files will trigger `--on-build` again. The `--build-path` file will be explicitly excluded from watching, but other files next to it that might be generated as part of the build are not. For example, if there is a `src/` and `build/` directory and multiple files would be generated under `build/`, add `--watch src`:
 
-When source mounting is enabled, the default behavior is to mount the current working directory into the executing
-container. This means that your action can have dependencies to any file living under the cwd.
-
-If `--build-path` was specified the build file's directory is mounted instead of cwd, alternatively you can specify
-another mount root location with `--build-path-root`.
+```
+wskdebug myaction src/action.js \
+    --on-build "mkdir build/; cp action.js build/index.js; cp util.js build/util.js" \
+    --build-path build/index.js \
+    --watch src
+```
 
 <a name="help-output"></a>
 ### Help output
@@ -340,7 +378,6 @@ Action options:
   -i, --image        Docker image to use as action container                      [string]
   --on-build         Shell command for custom action build step                   [string]
   --build-path       Path to built action, result of --on-build command           [string]
-  --build-path-root  Build path mount root, requires --build-path                 [string]
 
 LiveReload options:
   -l            Enable browser LiveReload on [source-path]                       [boolean]
@@ -535,7 +572,7 @@ See also [invoker.js](src/invoker.js). Note that some of these might not be set 
 |----------|------|-------------|
 | `invoker.main` | `string` | name of the `main` entry point (from cli args) |
 | `invoker.sourcePath` | `string` | path to the source file either `<source-path>` or the `--build-path` |
-| `invoker.sourceDir` | `string` | absolute path to root directory to mount in the container, either current working directory or `--build-path-root` |
+| `invoker.sourceDir` | `string` | absolute path to root directory to mount in the container |
 | `invoker.sourceFile` | `string` | relative path from `sourceDir` to `sourcePath` |
 | `invoker.action` | `object` | the object representing the debugged action, as specified as `Action` model in the [openwhisk REST API spec](http://petstore.swagger.io/?url=https://raw.githubusercontent.com/openwhisk/openwhisk/master/core/controller/src/main/resources/apiv1swagger.json) |
 | `invoker.debug.port` | `number` | `--port` from cli args or `--internal-port` or the `port` from the debug kind js (in that preference) |

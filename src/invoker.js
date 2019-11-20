@@ -65,7 +65,7 @@ class OpenWhiskInvoker {
         // the build path can be separate, if not, same as the source/watch path
         this.sourcePath = options.buildPath || options.sourcePath;
         if (this.sourcePath) {
-            this.sourceDir = options.buildPathRoot ? path.resolve(options.buildPathRoot) : process.cwd();
+            this.sourceDir = process.cwd();
             // ensure sourcePath is relative to sourceDir
             this.sourceFile = path.relative(this.sourceDir, this.sourcePath);
         }

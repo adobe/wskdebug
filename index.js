@@ -94,12 +94,6 @@ function yargsOptions(yargs) {
         group: "Action options:",
         describe: "Path to built action, result of --on-build command"
     });
-    yargs.option("build-path-root", {
-      type: "string",
-      group: "Action options:",
-      describe: "Build path mount root, requires --build-path",
-      coerce: path.resolve // ensure absolute path
-    });
 
     // source watching
     yargs.option("l", {
