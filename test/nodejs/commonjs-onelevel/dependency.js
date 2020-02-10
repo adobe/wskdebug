@@ -1,5 +1,5 @@
 'use strict';
 
 module.exports = {
-  msg: "CORRECT"
+    msg: "CORRECT"
 }

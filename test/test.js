@@ -186,18 +186,18 @@ function expectAgentInvocation(name, params, result) {
 
     // wskdebug sending result back to agent
     nockActivation(
-            name,
-            body => {
-                assert.deepStrictEqual(body, result);
-                return true;
+        name,
+        body => {
+            assert.deepStrictEqual(body, result);
+            return true;
+        }
+    ).reply(200, {
+        response: {
+            result: {
+                message: "Completed"
             }
-        ).reply(200, {
-            response: {
-                result: {
-                    message: "Completed"
-                }
-            }
-        });
+        }
+    });
 
     // graceful shutdown for wskdebug to end test
     nockActivation(name, body => body.$waitForActivation === true)

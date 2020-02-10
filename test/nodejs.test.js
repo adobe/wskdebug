@@ -94,21 +94,45 @@ describe('nodejs', function() {
         test.assertAllNocksInvoked();
     });
 
+    it("it should always use linux paths in docker code", async function() {
+        const nodejs = require("../src/kinds/nodejs/nodejs")
+        const path = require("path")
+
+        // manually mock path
+        path.sep = '\\'
+        const posix = path.posix
+        path.posix = { sep: '/' }
+
+        process.chdir("test/nodejs/plain-onelevel");
+        const ret = nodejs.mountAction({
+            sourceFile: 'lib\\action.js',
+            sourcePath: 'lib/action.js'
+        })
+
+        // restore mock
+        path.sep = '/'
+        path.posix = posix
+
+        // asserts
+        assert(ret.code.includes('lib/action.js'))
+        assert(!ret.code.includes('lib\\action.js'))
+    });
+
     it("should mount local sources with a require(../) dependency", async function() {
-      this.timeout(10000);
-      test.mockActionAndInvocation(
-          "myaction",
-          // should not use this code if we specify local sources which return CORRECT
-          `const main = () => ({ msg: 'WRONG' });`,
-          {},
-          { msg: "CORRECT" },
-          true // binary
-      );
+        this.timeout(10000);
+        test.mockActionAndInvocation(
+            "myaction",
+            // should not use this code if we specify local sources which return CORRECT
+            `const main = () => ({ msg: 'WRONG' });`,
+            {},
+            { msg: "CORRECT" },
+            true // binary
+        );
 
-      process.chdir("test/nodejs/commonjs-onelevel");
-      await wskdebug(`myaction lib/action.js -p ${test.port}`);
+        process.chdir("test/nodejs/commonjs-onelevel");
+        await wskdebug(`myaction lib/action.js -p ${test.port}`);
 
-      test.assertAllNocksInvoked();
+        test.assertAllNocksInvoked();
     });
 
     it("should mount local sources with a require(../) dependency reported as non binary", async function() {
@@ -142,9 +166,9 @@ describe('nodejs', function() {
         await wskdebug(`myaction ${process.cwd()}/lib/action.js -p ${test.port}`);
 
         test.assertAllNocksInvoked();
-      });
+    });
 
-      it("should mount local sources with a require(../) dependency and run build with --on-build set", async function() {
+    it("should mount local sources with a require(../) dependency and run build with --on-build set", async function() {
         this.timeout(10000);
         test.mockActionAndInvocation(
             "myaction",

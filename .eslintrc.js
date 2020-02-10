@@ -58,6 +58,8 @@ module.exports = {
         "mocha/no-pending-tests": "error",
         "mocha/no-return-and-callback": "error",
         "mocha/no-sibling-hooks": "error",
-        "mocha/no-async-describe": "error"
+        "mocha/no-async-describe": "error",
+        "indent": ["error", 4],
+        "keyword-spacing": [2]
     }
 };

@@ -656,7 +656,7 @@ class Debugger {
                     console.log("Unexpected empty response while waiting for new activations:", activation);
                 }
 
-            } catch(e) {
+            } catch (e) {
                 // look for special error codes from agent
                 const errorCode = this.getActivationError(e).code;
                 // 42 => retry

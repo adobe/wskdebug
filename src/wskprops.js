@@ -22,50 +22,50 @@ const fs = require('fs-extra');
 const ENV_PARAMS = ['OW_APIHOST', 'OW_AUTH', 'OW_NAMESPACE', 'OW_APIGW_ACCESS_TOKEN'];
 
 function getWskPropsFile() {
-  const Home = process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
-  return process.env.WSK_CONFIG_FILE || path.format({ dir: Home, base: '.wskprops' });
+    const Home = process.env[(process.platform === 'win32') ? 'USERPROFILE' : 'HOME'];
+    return process.env.WSK_CONFIG_FILE || path.format({ dir: Home, base: '.wskprops' });
 }
 
 function readWskPropsFile() {
-  const wskFilePath = getWskPropsFile();
+    const wskFilePath = getWskPropsFile();
 
-  if (fs.existsSync(wskFilePath)) {
-    return fs.readFileSync(wskFilePath, 'utf8');
-  } else {
-    return null;
-  }
+    if (fs.existsSync(wskFilePath)) {
+        return fs.readFileSync(wskFilePath, 'utf8');
+    } else {
+        return null;
+    }
 }
 
 function getWskProps() {
-  const data = readWskPropsFile();
-  if (!data) return {};
+    const data = readWskPropsFile();
+    if (!data) return {};
 
-  const wskProps = data.trim().split('\n')
-  .map(line => line.split('='))
-  .reduce((params, keyValue) => {
-    params[keyValue[0].toLowerCase()] = keyValue[1]; // eslint-disable-line no-param-reassign
-    return params;
-  }, {});
+    const wskProps = data.trim().split('\n')
+        .map(line => line.split('='))
+        .reduce((params, keyValue) => {
+            params[keyValue[0].toLowerCase()] = keyValue[1]; // eslint-disable-line no-param-reassign
+            return params;
+        }, {});
 
-  return wskProps;
+    return wskProps;
 }
 
 function getWskEnvProps() {
-  const envProps = {};
-  ENV_PARAMS.forEach((envName) => {
-    if (process.env[envName]) envProps[envName.slice(3).toLowerCase()] = process.env[envName];
-  });
-  return envProps;
+    const envProps = {};
+    ENV_PARAMS.forEach((envName) => {
+        if (process.env[envName]) envProps[envName.slice(3).toLowerCase()] = process.env[envName];
+    });
+    return envProps;
 }
 
 module.exports = {
-  get() {
-    const props = Object.assign(getWskProps(), getWskEnvProps());
-    if (props.auth) {
-      props.api_key = props.auth;
-      delete props.auth;
-    }
-    return props;
-  },
-  ENV_PARAMS,
+    get() {
+        const props = Object.assign(getWskProps(), getWskEnvProps());
+        if (props.auth) {
+            props.api_key = props.auth;
+            delete props.auth;
+        }
+        return props;
+    },
+    ENV_PARAMS,
 };

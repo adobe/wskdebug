@@ -13,6 +13,7 @@
 'use strict';
 
 const fs = require('fs-extra');
+const path = require('path');
 
 // path inside docker container where action code is mounted
 const CODE_MOUNT = "/code";
@@ -50,10 +51,17 @@ module.exports = {
         const bridgeSource = isCommonJS ? "mount-require.js" : "mount-plain.js";
 
         let code = fs.readFileSync(`${__dirname}/${bridgeSource}`, {encoding: 'utf8'});
+        let sourceFile = invoker.sourceFile.toString();
+
+        // On Windows, the path set on the cli would typically be in windows format,
+        // but the nodejs container is Unix and requires Unix paths
+        if (path.sep !== path.posix.sep) {
+            sourceFile = sourceFile.split(path.sep).join(path.posix.sep);
+        }
 
         code = code.replace("$$main$$",        invoker.main || "main");
-        code = code.replace("$$sourcePath$$", `${CODE_MOUNT}/${invoker.sourceFile}`);
-        code = code.replace("$$sourceFile$$",  invoker.sourceFile);
+        code = code.replace("$$sourcePath$$", `${CODE_MOUNT}/${sourceFile}`);
+        code = code.replace("$$sourceFile$$",  sourceFile);
 
         return {
             binary: false,

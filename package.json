@@ -18,8 +18,8 @@
         "wskdebug": "./cli.js"
     },
     "scripts": {
-        "pretest": "eslint .",
         "test": "nyc mocha test/**/*.test.js",
+        "posttest": "eslint .",
         "report-coverage": "nyc report --reporter=json && codecov -f coverage/coverage-final.json"
     },
     "nyc": {

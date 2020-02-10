@@ -52,8 +52,8 @@ describe('ngrok',  function() {
         // validate that it connects to ngrok
         // leaving it at that for now - more validation would be quite difficult
         const ngrok = nock('http://127.0.0.1', {
-                filteringScope: scope => /^http:\/\/127\.0\.0\.1:.*/.test(scope),
-            })
+            filteringScope: scope => /^http:\/\/127\.0\.0\.1:.*/.test(scope),
+        })
             .post('/api/tunnels')
             .reply(201, { "public_url":"https://UNIT_TEST.ngrok.io" });
 
