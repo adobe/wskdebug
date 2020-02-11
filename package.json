@@ -42,7 +42,7 @@
     "dependencies": {
         "fetch-retry": "^2.2.0",
         "fs-extra": "^8.0.1",
-        "livereload": "^0.8.0",
+        "livereload": "^0.9.1",
         "manakin": "^0.5.2",
         "ngrok": "^3.2.5",
         "openwhisk": "^3.19.0",
