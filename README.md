@@ -1,10 +1,11 @@
 # 👉 wskdebug has moved to Apache OpenWhisk: https://github.com/apache/openwhisk-wskdebug
 
-The npm name has changed:
+<!-- The npm name has changed:
 
 ```
 npm install -g @openwhisk/wskdebug
 ```
+-->
 
 All new development will happen there. This repository is archived.
 
