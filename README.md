@@ -1,3 +1,15 @@
+# 👉 wskdebug has moved to Apache OpenWhisk: https://github.com/apache/openwhisk-wskdebug
+
+The npm name has changed:
+
+```
+npm install -g @openwhisk/wskdebug
+```
+
+All new development will happen there. This repository is archived.
+
+---
+
 <!-- disabled badges
 cli: ![](https://img.shields.io/badge/cli-wskdebug-brightgreen)
 github actions: [![Actions Status](https://github.com/adobe/wskdebug/workflows/CI/badge.svg)](https://github.com/adobe/wskdebug/actions)
