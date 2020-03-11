@@ -1,13 +1,17 @@
-# 👉 wskdebug has moved to Apache OpenWhisk: https://github.com/apache/openwhisk-wskdebug
+# 👉 wskdebug has moved to Apache OpenWhisk
 
-<!-- The npm name has changed:
+New project:
+
+- NPM: [@openwhisk/wskdebug](https://www.npmjs.com/package/@openwhisk/wskdebug)
+- Github: [apache/openwhisk-wskdebug](https://github.com/apache/openwhisk-wskdebug)
+
+Note that the npm name has changed. Install using:
 
 ```
-npm install -g @openwhisk/wskdebug
+npm install -g @openwhisk/wskdebug --unsafe-perm=true
 ```
--->
 
-All new development will happen there. This repository is archived.
+All new development will happen at [apache/openwhisk-wskdebug](https://github.com/apache/openwhisk-wskdebug). This repository is archived and the `@adobe/wskdebug` npm package deprecated.
 
 ---
 
